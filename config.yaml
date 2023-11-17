@@ -39,7 +39,7 @@ push_to_s3: True
 upload_dem: True
 
 # delete files after run
-delete_local_files: True
+delete_local_files: False
 
 #pyrosar settings - pixel size
 pyrosar_spacing: 20

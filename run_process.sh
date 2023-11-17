@@ -1,0 +1,1 @@
+docker run -v /data:/data -v ${PWD}:/app/ -v $HOME/.aws:/root/.aws -it pyrosar

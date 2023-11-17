@@ -25,6 +25,11 @@ logging.basicConfig(
     level=logging.INFO,
     datefmt='%Y-%m-%d %H:%M:%S')
 
+def setup_logger(log_path):
+    logging_file_handler = logging.FileHandler(log_path)
+    logging.getLogger().addHandler(logging_file_handler)
+    return logging_file_handler
+
 if __name__ == "__main__":
 
     t_start = time.time()
@@ -49,6 +54,10 @@ if __name__ == "__main__":
     # download data -> produce backscatter -> save
     for i, scene in enumerate(otf_cfg['scenes']):
         
+        #setup logging
+        log_path = os.path.join(otf_cfg['pyrosar_output_folder'],scene+'.logs')
+        logging_file_handler = setup_logger(log_path)
+
         timing = {}
         t0 = time.time()
 
@@ -107,26 +116,26 @@ if __name__ == "__main__":
         DEM_PATH = os.path.join(dem_dl_folder,dem_filename)
 
         # get the DEM and geometry information
-        # X, p = stitch_dem(scene_bounds_buff,
-        #                 dem_name=otf_cfg['dem_type'],
-        #                 dst_ellipsoidal_height=False,
-        #                 dst_area_or_point='Point')
+        X, p = stitch_dem(scene_bounds_buff,
+                        dem_name=otf_cfg['dem_type'],
+                        dst_ellipsoidal_height=False,
+                        dst_area_or_point='Point')
         
-        # # save with rasterio
-        # logging.info(f'saving dem to {DEM_PATH}')
-        # # pyroSAR cant handle a nodata value of np.nan
-        # # we therefore set this to be -9999
-        # if np.isnan(p['nodata']):
-        #     logging.info(f'replace dem nodata from np.nan to -9999')
-        #     replace_nan = True
-        #     p['nodata'] = -9999
-        # with rasterio.open(DEM_PATH, 'w', **p) as ds:
-        #     if replace_nan:
-        #         X[X==np.nan] = -9999
-        #         X[X=='nan'] = -9999
-        #     ds.write(X, 1)
-        #     ds.update_tags(AREA_OR_POINT='Point')
-        # del X
+        # save with rasterio
+        logging.info(f'saving dem to {DEM_PATH}')
+        # pyroSAR cant handle a nodata value of np.nan
+        # we therefore set this to be -9999
+        if np.isnan(p['nodata']):
+            logging.info(f'replace dem nodata from np.nan to -9999')
+            replace_nan = True
+            p['nodata'] = -9999
+        with rasterio.open(DEM_PATH, 'w', **p) as ds:
+            if replace_nan:
+                X[X==np.nan] = -9999
+                X[X=='nan'] = -9999
+            ds.write(X, 1)
+            ds.update_tags(AREA_OR_POINT='Point')
+        del X
 
         t3 = time.time()
         timing['Download DEM'] = t3 - t2
@@ -172,13 +181,16 @@ if __name__ == "__main__":
             returnWF=True
             )
 
-
+        scene_workflow = '/data/pyroSAR/outdir/S1B__IW___D_20190223T222639_Cal_NR_Deb_Orb_ML_TF_TC_dB_proc.xml'
         logging.info(scene_workflow)
-        # keep track of success
-        # if os.path.exists(prod_path):
-        #     success['pyrosar-rtc'].append(prod_path)
-        #     logging.info(f'RTC Backscatter successfully made')
-            
+        _, xml_filnemae = os.path.split(scene_workflow)
+        scene_start_id = xml_filnemae.split('_')[6]
+        for f in os.listdir(otf_cfg['pyrosar_output_folder']):
+            if ((scene_start_id in f) and ('.tif' in f)):
+                tif_path = os.path.join(otf_cfg['pyrosar_output_folder'], f)
+                success['pyrosar-rtc'].append(tif_path)
+                logging.info(f'RTC Backscatter successfully made')
+
         t4 = time.time()
         timing['RTC Processing'] = t4 - t3
 
@@ -248,6 +260,8 @@ if __name__ == "__main__":
                         bucket=bucket, 
                         object_name=bucket_path)
             os.remove(timing_file)
+        
+        logging.getLogger().removeHandler(logging_file_handler)
 
     logging.info(f'Run complete, {len(otf_cfg["scenes"])} scenes processed')
     logging.info(f'Elapsed time:  {((time.time() - t_start)/60)} minutes')
