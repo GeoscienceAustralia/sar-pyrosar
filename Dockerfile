@@ -41,6 +41,5 @@ RUN source ~/.bashrc \
  && python -m pip install -r requirements.txt
 
 
-COPY docker/entrypoint.sh entrypoint.sh
-RUN chmod +x entrypoint.sh
-ENTRYPOINT ["/app/entrypoint.sh"]
+RUN chmod +x docker/entrypoint.sh
+ENTRYPOINT ["/app/docker/entrypoint.sh"]
