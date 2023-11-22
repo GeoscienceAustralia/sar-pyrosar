@@ -1,5 +1,13 @@
 # list of scenes to download and process
-scenes: [S1B_IW_SLC__1SSH_20190223T222639_20190223T222706_015079_01C2E9_1D63]
+scenes: [
+        #S1B_IW_SLC__1SSH_20190223T222639_20190223T222706_015079_01C2E9_1D63,
+        S1A_IW_SLC__1SSH_20190926T124734_20190926T124804_029192_0350B9_FA6B,
+        S1A_EW_GRDM_1SDH_20230118T112609_20230118T112713_046837_059DB3_9C85,
+        S1A_IW_SLC__1SSH_20190605T222724_20190605T222751_027550_031BE1_AD3A,
+        S1B_IW_SLC__1SSH_20190315T195015_20190315T195045_015369_01CC73_DB8B,
+        S1B_IW_SLC__1SSH_20210223T233056_20210223T233124_025740_031194_E7BE,
+
+        ]
 
 # we will mount this folder in the docker container so all data can be accessed
 # this folder should contain all the downloaded scenes, dems, etc specified below
@@ -39,14 +47,14 @@ push_to_s3: True
 upload_dem: True
 
 # delete files after run
-delete_local_files: False
+delete_local_files: True
 
 #pyrosar settings - pixel size
 pyrosar_spacing: 20
 
 #pyrosar settings - scale of final product
 # e.g. linear, db
-pyrosar_scaling: dB
+pyrosar_scaling: linear
 
 # pyrosar settings - reference area
 # e.g. gamma0, sigma0, beta0
@@ -58,6 +66,7 @@ pyrosar_refarea: gamma0
 # e.g. 4326, 3031
 # by default set the crs based on the location of the scene on
 # the sentinel-2 MGRS grid
-pyrosar_t_srs: default
+#pyrosar_t_srs: default
+pyrosar_t_srs: 3031
 
 
