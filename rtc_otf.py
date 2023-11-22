@@ -18,17 +18,29 @@ from pyproj import CRS
 from pyproj.aoi import AreaOfInterest
 from pyproj.database import query_utm_crs_info
 import json
+import sys
+from importlib import reload
 
+def setup_logging(log_path):
 
-logging.basicConfig(
-    format='%(asctime)s %(levelname)-8s %(message)s',
+    log = logging.getLogger()  # root logger
+    for hdlr in log.handlers[:]:  # remove all old handlers
+        log.removeHandler(hdlr)
+
+    # create a haandler to write to file and stdout/console
+    logging_file_handler = logging.FileHandler(log_path, mode="w")
+    logging.basicConfig(
+    handlers=[
+        logging.StreamHandler(sys.stdout),
+        logging_file_handler
+    ],
     level=logging.INFO,
-    datefmt='%Y-%m-%d %H:%M:%S')
+    format='%(asctime)s %(levelname)-8s %(message)s',
+    datefmt="%Y-%m-%d %H:%M:%S",
+    )
 
-def setup_logger(log_path):
-    logging_file_handler = logging.FileHandler(log_path)
-    logging.getLogger().addHandler(logging_file_handler)
     return logging_file_handler
+
 
 if __name__ == "__main__":
 
@@ -56,13 +68,16 @@ if __name__ == "__main__":
         
         #setup logging
         log_path = os.path.join(otf_cfg['pyrosar_output_folder'],scene+'.logs')
-        logging_file_handler = setup_logger(log_path)
+
+        # create a haandler to write to file and stdout/console
+        logging_file_handler = setup_logging(log_path)
 
         timing = {}
         t0 = time.time()
 
         logging.info(f'PROCESS 1: Downloads')
         logging.info(f'processing scene {i+1} of {len(otf_cfg["scenes"])} : {scene}')
+        
         # search for the scene in asf
         logging.info(f'searching asf for scene...')
         asf_results = asf.granule_search([scene], asf.ASFSearchOptions(processingLevel='SLC'))
@@ -83,8 +98,8 @@ if __name__ == "__main__":
         asf_result.download(path=otf_cfg['scene_folder'], session=session)
 
         # unzip scene
+        SAFE_PATH = scene_zip.replace(".zip",".SAFE")
         if otf_cfg['unzip_scene']: 
-            SAFE_PATH = scene_zip.replace(".zip",".SAFE")
             logging.info(f'unzipping scene to {SAFE_PATH}')     
             with zipfile.ZipFile(scene_zip, 'r') as zip_ref:
                 zip_ref.extractall(otf_cfg['scene_folder'])
@@ -144,6 +159,8 @@ if __name__ == "__main__":
         if otf_cfg['pyrosar_t_srs'] == 'default':
             logging.info(f'finding target crs..')
             logging.info(f'scene bounds: {scene_bounds}')
+            # TODO this should be based on the center of the scene
+            # as done in OPERA 
             utm_crs_list = query_utm_crs_info(
                 datum_name="WGS 84",
                 area_of_interest=AreaOfInterest(
@@ -169,6 +186,7 @@ if __name__ == "__main__":
             os.environ['PATH'] = os.environ['PATH'] + ':' + otf_cfg['snap_path']
 
         logging.info(scene_zip)
+        logging.getLogger().setLevel(logging.DEBUG)
         scene_workflow = geocode(infile=scene_zip,
             outdir=otf_cfg['pyrosar_output_folder'],
             allow_RES_OSV=True,
@@ -180,12 +198,17 @@ if __name__ == "__main__":
             t_srs=trg_crs,
             returnWF=True
             )
+        logging.getLogger().setLevel(logging.INFO)
 
-        scene_workflow = '/data/pyroSAR/outdir/S1B__IW___D_20190223T222639_Cal_NR_Deb_Orb_ML_TF_TC_dB_proc.xml'
-        logging.info(scene_workflow)
-        _, xml_filnemae = os.path.split(scene_workflow)
-        scene_start_id = xml_filnemae.split('_')[6]
-        for f in os.listdir(otf_cfg['pyrosar_output_folder']):
+        if scene_workflow is None:
+            # scene might already be processed
+            xml_filename = find_files(otf_cfg['pyrosar_output_folder'], 'xml')[0]
+            # if not an error will be raised as the proces failed 
+        else:
+            _, xml_filename = os.path.split(scene_workflow)
+        logging.info(f'Process graph: {xml_filename}')
+        scene_start_id = xml_filename.split('_')[6]
+        for f in os.listdir():
             if ((scene_start_id in f) and ('.tif' in f)):
                 tif_path = os.path.join(otf_cfg['pyrosar_output_folder'], f)
                 success['pyrosar-rtc'].append(tif_path)
@@ -229,17 +252,21 @@ if __name__ == "__main__":
                         ]:
                 logging.info(f'Deleteing {file_}')
                 os.remove(file_)
-            logging.info(f'Clearing SAFE directory: {SAFE_PATH}')
-            shutil.rmtree(SAFE_PATH)
+            if os.path.exists(SAFE_PATH):
+                logging.info(f'Clearing SAFE directory: {SAFE_PATH}')
+                shutil.rmtree(SAFE_PATH)
             logging.info(f'Clearing directory: {otf_cfg["pyrosar_output_folder"]}')
             try:
-                shutil.rmtree(otf_cfg['pyrosar_output_folder'])
+                for file_ in os.listdir(otf_cfg['pyrosar_output_folder']):
+                    if 'log' not in file_:
+                        # we clear logs at the end after pushing
+                        os.remove(os.path.join(otf_cfg['pyrosar_output_folder'], file_))
             except:
                 os.system(f'sudo chmod -R 777 {otf_cfg["pyrosar_output_folder"]}')
-                shutil.rmtree(otf_cfg['pyrosar_output_folder'])
-            # remake the outdir
-            os.makedirs(otf_cfg['pyrosar_output_folder'])
-        
+                for file_ in os.listdir(otf_cfg['pyrosar_output_folder']):
+                    if 'log' not in file_:
+                        # we clear logs at the end after pushing
+                        os.remove(os.path.join(otf_cfg['pyrosar_output_folder'], file_))
             
         t6 = time.time()
         timing['Delete Files'] = t6 - t5
@@ -262,15 +289,7 @@ if __name__ == "__main__":
             os.remove(timing_file)
         
         logging.getLogger().removeHandler(logging_file_handler)
+        os.remove(log_path)
 
     logging.info(f'Run complete, {len(otf_cfg["scenes"])} scenes processed')
     logging.info(f'Elapsed time:  {((time.time() - t_start)/60)} minutes')
-
-
-
-
-
-
-
-
-    

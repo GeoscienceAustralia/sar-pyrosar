@@ -37,8 +37,12 @@ RUN echo "conda activate nrb_env" >> ~/.bashrc
 
 WORKDIR /app/
 COPY . /app/
+
+# install latest pyrosar with fix for orbit files
 RUN source ~/.bashrc \
- && python -m pip install -r requirements.txt
+ && python -m pip install -r requirements.txt \
+ && python -m pip uninstall pyrosar -y \
+ && python -m pip install git+https://github.com/johntruckenbrodt/pyroSAR.git
 
 
 RUN chmod +x docker/entrypoint.sh
