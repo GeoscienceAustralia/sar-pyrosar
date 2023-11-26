@@ -78,16 +78,29 @@ if __name__ == "__main__":
         logging.info(f'PROCESS 1: Downloads')
         logging.info(f'processing scene {i+1} of {len(otf_cfg["scenes"])} : {scene}')
         
+        # set parameters to limit search results to single scene
+        level = scene.split('_')[2]
+        mode = scene.split('_')[1]
+        if (('GRD' in level) and (mode=='EW')):
+            level = ['GRD_MD','GRD_HD', 'GRD_MS','GRD_FD']
+        if (('GRD' in level) and (mode=='IW')):
+            level = ['GRD_HS','GRD_HD','GRD_FD']
+        
         # search for the scene in asf
         logging.info(f'searching asf for scene...')
-        asf_results = asf.granule_search([scene], asf.ASFSearchOptions(processingLevel='SLC'))
+        asf_results = asf.granule_search(
+            [scene], 
+            asf.ASFSearchOptions(processingLevel=level, beamMode=mode))
         
-        if len(asf_results) > 0:
-            logging.info(f'scene found')
-            asf_result = asf_results[0]
-        else:
+        if len(asf_results) == 0:
             logging.error(f'scene not found : {scene}')
             continue
+        if len(asf_results) == 1:
+            logging.info(f'scene found')
+            asf_result = asf_results[0]
+        if len(asf_results) > 1:
+            logging.error(f'{asf_results} scenes found, expecting one. \
+                          check specified processingLevel ()')
         
         # download scene
         logging.info(f'downloading scene')
@@ -145,6 +158,7 @@ if __name__ == "__main__":
             replace_nan = True
             p['nodata'] = -9999
         with rasterio.open(DEM_PATH, 'w', **p) as ds:
+            logging.info(f'DEM crs : {ds.meta["crs"]}')
             if replace_nan:
                 X[X==np.nan] = -9999
                 X[X=='nan'] = -9999
@@ -284,6 +298,11 @@ if __name__ == "__main__":
             logging.info(f'Uploading file: {timing_file}')
             logging.info(f'Destination: {bucket_path}')
             upload_file(file_name=timing_file, 
+                        bucket=bucket, 
+                        object_name=bucket_path)
+            _, log_file = os.path.split(log_path)
+            bucket_path = os.path.join(bucket_folder, log_file)
+            upload_file(file_name=log_path, 
                         bucket=bucket, 
                         object_name=bucket_path)
             os.remove(timing_file)
