@@ -1,8 +1,9 @@
 pyyaml
-asf-search 
+asf-search
 pyproj 
 scipy 
 rasterio 
 geopandas
 boto3
 dem-stitcher
+opencv-python-headless
