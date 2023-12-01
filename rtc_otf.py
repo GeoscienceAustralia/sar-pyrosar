@@ -4,14 +4,16 @@ import os
 import asf_search as asf
 import logging
 import zipfile
-from shapely.geometry import Polygon
+from shapely.geometry import Polygon, box
 import rasterio
 from dem_stitcher import stitch_dem
-from utils import upload_file, find_files
+from utils import (upload_file, 
+                   find_files, 
+                   expand_raster_with_bounds, 
+                   save_tif_as_image)
 import time
 import shutil
 from pyroSAR.snap import geocode
-from urllib.request import urlretrieve
 import geopandas as gpd
 import numpy as np
 from pyproj import CRS
@@ -19,7 +21,6 @@ from pyproj.aoi import AreaOfInterest
 from pyproj.database import query_utm_crs_info
 import json
 import sys
-from importlib import reload
 
 def setup_logging(log_path):
 
@@ -51,6 +52,7 @@ if __name__ == "__main__":
 
     # define success tracker
     success = {'pyrosar-rtc': []}
+    failed = {'pyrosar-rtc': []}
 
     # read in the config for on the fly (otf) processing
     with open(args.config, 'r', encoding='utf8') as fin:
@@ -75,8 +77,8 @@ if __name__ == "__main__":
         timing = {}
         t0 = time.time()
 
-        logging.info(f'PROCESS 1: Downloads')
         logging.info(f'processing scene {i+1} of {len(otf_cfg["scenes"])} : {scene}')
+        logging.info(f'PROCESS 1: Downloads')
         
         # set parameters to limit search results to single scene
         level = scene.split('_')[2]
@@ -85,15 +87,19 @@ if __name__ == "__main__":
             level = ['GRD_MD','GRD_HD', 'GRD_MS','GRD_FD']
         if (('GRD' in level) and (mode=='IW')):
             level = ['GRD_HS','GRD_HD','GRD_FD']
-        
+
         # search for the scene in asf
         logging.info(f'searching asf for scene...')
+        asf.constants.CMR_TIMEOUT = 45
+        logging.debug(f'CMR will timeout in {asf.constants.CMR_TIMEOUT}s')
         asf_results = asf.granule_search(
             [scene], 
             asf.ASFSearchOptions(processingLevel=level, beamMode=mode))
         
         if len(asf_results) == 0:
             logging.error(f'scene not found : {scene}')
+            run_success = False
+            failed['pyrosar-rtc'].append(scene)
             continue
         if len(asf_results) == 1:
             logging.info(f'scene found')
@@ -144,7 +150,7 @@ if __name__ == "__main__":
         DEM_PATH = os.path.join(dem_dl_folder,dem_filename)
 
         # get the DEM and geometry information
-        X, p = stitch_dem(scene_bounds_buff,
+        dem_data, dem_meta = stitch_dem(scene_bounds_buff,
                         dem_name=otf_cfg['dem_type'],
                         dst_ellipsoidal_height=False,
                         dst_area_or_point='Point')
@@ -153,18 +159,34 @@ if __name__ == "__main__":
         logging.info(f'saving dem to {DEM_PATH}')
         # pyroSAR cant handle a nodata value of np.nan
         # we therefore set this to be -9999
-        if np.isnan(p['nodata']):
+        if np.isnan(dem_meta['nodata']):
             logging.info(f'replace dem nodata from np.nan to -9999')
             replace_nan = True
-            p['nodata'] = -9999
-        with rasterio.open(DEM_PATH, 'w', **p) as ds:
+            dem_meta['nodata'] = -9999
+        with rasterio.open(DEM_PATH, 'w', **dem_meta) as ds:
             logging.info(f'DEM crs : {ds.meta["crs"]}')
             if replace_nan:
-                X[X==np.nan] = -9999
-                X[X=='nan'] = -9999
-            ds.write(X, 1)
+                dem_data[dem_data==np.nan] = -9999
+                dem_data[dem_data=='nan'] = -9999
+            ds.write(dem_data, 1)
             ds.update_tags(AREA_OR_POINT='Point')
-        del X
+        del dem_data
+
+        # get the bounds of the downloaded DEM
+        # the full area requested may not be covered
+        dem_bounds = rasterio.transform.array_bounds(
+            dem_meta['height'], dem_meta['width'], dem_meta['transform'])
+        logging.info(f'Downloaded DEM bounds: {dem_bounds}')
+        # Pad the DEM if it does not cover the full area od the scene
+        if not box(*dem_bounds).contains_properly(box(*scene_bounds_buff)):
+            logging.warning('Downloaded DEM does not cover scene bounds, filling with nodata')
+            logging.info('Expanding the bounds of the downloaded DEM')
+            DEM_ADJ_PATH = DEM_PATH.replace('.tif','_adj.tif') #adjusted DEM path
+            expand_raster_with_bounds(DEM_PATH, DEM_ADJ_PATH, dem_bounds, scene_bounds_buff)
+            logging.info(f'Replacing old DEM: {DEM_PATH}')
+            os.remove(DEM_PATH)
+            os.rename(DEM_ADJ_PATH, DEM_PATH)
+        
 
         t3 = time.time()
         timing['Download DEM'] = t3 - t2
@@ -173,17 +195,19 @@ if __name__ == "__main__":
         if otf_cfg['pyrosar_t_srs'] == 'default':
             logging.info(f'finding target crs..')
             logging.info(f'scene bounds: {scene_bounds}')
-            # TODO this should be based on the center of the scene
-            # as done in OPERA 
+            # make a small area based on the centroid of the scene
+            centre_lat = (scene_bounds[3] + scene_bounds[1])/2
+            centre_lon = (scene_bounds[2] + scene_bounds[0])/2
             utm_crs_list = query_utm_crs_info(
                 datum_name="WGS 84",
                 area_of_interest=AreaOfInterest(
-                    west_lon_degree=scene_bounds[0],
-                    south_lat_degree=scene_bounds[1],
-                    east_lon_degree=scene_bounds[2],
-                    north_lat_degree=scene_bounds[3],
+                    west_lon_degree=centre_lon-0.01,
+                    south_lat_degree=centre_lat-0.01,
+                    east_lon_degree=centre_lon+0.01,
+                    north_lat_degree=centre_lat+0.01,
                 ),
             )
+            logging.info(f'Getting crs at lat: {centre_lat}, lon: {centre_lon}')
             trg_crs = CRS.from_epsg(utm_crs_list[0].code)
             trg_crs = str(trg_crs)
             logging.info(f'target crs: {trg_crs}')
@@ -217,12 +241,12 @@ if __name__ == "__main__":
         if scene_workflow is None:
             # scene might already be processed
             xml_filename = find_files(otf_cfg['pyrosar_output_folder'], 'xml')[0]
-            # if not an error will be raised as the proces failed 
+            # if not an error will be raised as the process failed 
         else:
             _, xml_filename = os.path.split(scene_workflow)
         logging.info(f'Process graph: {xml_filename}')
         scene_start_id = xml_filename.split('_')[6]
-        for f in os.listdir():
+        for f in os.listdir(otf_cfg['pyrosar_output_folder']):
             if ((scene_start_id in f) and ('.tif' in f)):
                 tif_path = os.path.join(otf_cfg['pyrosar_output_folder'], f)
                 success['pyrosar-rtc'].append(tif_path)
@@ -231,6 +255,10 @@ if __name__ == "__main__":
         t4 = time.time()
         timing['RTC Processing'] = t4 - t3
 
+        # make a thumbnail image to upload
+        IMG_PATH = os.path.join(otf_cfg['pyrosar_output_folder'], f'{xml_filename.replace('.xml','.png')}')
+        save_tif_as_image(tif_path, IMG_PATH, downscale_factor=6)
+
         if otf_cfg['push_to_s3']:
             logging.info(f'PROCESS 3: Push results to S3 bucket')
             bucket = otf_cfg['s3_bucket']
@@ -238,6 +266,7 @@ if __name__ == "__main__":
             # set the path in the bucket
             bucket_folder = os.path.join('pyrosar/',
                                          otf_cfg['dem_type'],
+                                         f'{trg_crs.split(":")[-1]}',
                                          SCENE_NAME)
             for file_ in outputs:
                 file_path = os.path.join(otf_cfg['pyrosar_output_folder'],file_)
