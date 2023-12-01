@@ -1,0 +1,67 @@
+# list of scenes to download and process
+scenes: [
+        S1A_S3_SLC__1SSH_20230925T000119_20230925T000138_050476_06143F_154F,
+        S1A_S3_SLC__1SSH_20200108T000054_20200108T000113_030701_0384ED_8266
+        ]
+
+# we will mount this folder in the docker container so all data can be accessed
+# this folder should contain all the downloaded scenes, dems, etc specified below
+data_folder: '/data'
+
+#save directory for final opera products
+pyrosar_output_folder: /data/pyroSAR/outdir
+
+# location of SNAP installation
+snap_path: /home/ec2-user/SNAP9/bin #'/Applications/snap/bin' 
+
+# location of earthdata credentials to download data.
+# file should be in format shown in credentials_example.txt
+earthdata_credentials: credentials_earthdata.txt
+
+# directory to save scenes
+scene_folder: /data/scenes
+
+# whether to unzip the safe file
+unzip_scene: False
+
+# directory where DEM will be saved - a sub folder is made for each DEM type
+dem_folder: /data/dem
+
+# type of dem to download for each scene
+# list of valid dems in https://pypi.org/project/dem-stitcher/
+dem_type: glo_30
+
+# s3 bucket to push the results
+# formatting will be {s3_bucket}/{opera-rtc}/{scene}/{product_id}
+s3_bucket: deant-data-public-dev
+
+# whether to push to s3
+push_to_s3: True
+
+# whether to push the DEM to the S3 bucket
+upload_dem: True
+
+# delete files after run
+delete_local_files: True
+
+#pyrosar settings - pixel size
+pyrosar_spacing: 10
+
+#pyrosar settings - scale of final product
+# e.g. linear, db
+pyrosar_scaling: linear
+
+# pyrosar settings - reference area
+# e.g. gamma0, sigma0, beta0
+pyrosar_refarea: gamma0
+
+# pyrosar settings 
+# A target geographic reference system in WKT, EPSG, PROJ4 or OPENGIS format.
+# See function :func:`spatialist.auxil.crsConvert()` for details.
+# e.g. 4326, 3031
+# by default set the crs based on the location of the scene on
+# the sentinel-2 MGRS grid
+#pyrosar_t_srs: default
+pyrosar_t_srs: 3031
+
+
