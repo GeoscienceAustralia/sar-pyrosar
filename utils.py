@@ -9,6 +9,8 @@ import rasterio
 from rasterio.transform import from_origin
 import numpy as np
 import cv2
+import pyproj
+from shapely.geometry import Polygon
 
 logger = logging.getLogger(__name__)
 
@@ -40,6 +42,17 @@ class ProgressPercentage(object):
                     percentage))
             sys.stdout.flush()
 
+def transform_polygon(src_crs, dst_crs, geometry, always_xy=True):
+    src_crs = pyproj.CRS(f"EPSG:{src_crs}")
+    dst_crs = pyproj.CRS(f"EPSG:{dst_crs}") 
+    transformer = pyproj.Transformer.from_crs(src_crs, dst_crs, always_xy=always_xy)
+     # Transform the polygon's coordinates
+    transformed_exterior = [
+        transformer.transform(x, y) for x, y in geometry.exterior.coords
+    ]
+    # Create a new Shapely polygon with the transformed coordinates
+    transformed_polygon = Polygon(transformed_exterior)
+    return transformed_polygon
 
 def upload_file(file_name, bucket, object_name=None):
     """Upload a file to an S3 bucket

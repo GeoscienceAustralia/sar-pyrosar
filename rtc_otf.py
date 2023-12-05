@@ -10,7 +10,8 @@ from dem_stitcher import stitch_dem
 from utils import (upload_file, 
                    find_files, 
                    expand_raster_with_bounds, 
-                   save_tif_as_image)
+                   save_tif_as_image,
+                   transform_polygon)
 import time
 import shutil
 from pyroSAR.snap import geocode
@@ -67,6 +68,10 @@ if __name__ == "__main__":
     # loop through the list of scenes
     # download data -> produce backscatter -> save
     for i, scene in enumerate(otf_cfg['scenes']):
+        
+        # add the scene name to the out folder
+        otf_cfg['pyrosar_output_folder'] = os.path.join(otf_cfg['pyrosar_output_folder'],scene)
+        os.makedirs(otf_cfg['pyrosar_output_folder'], exist_ok=True)
         
         #setup logging
         log_path = os.path.join(otf_cfg['pyrosar_output_folder'],scene+'.logs')
@@ -136,12 +141,20 @@ if __name__ == "__main__":
         points = (asf_result.__dict__['umm']['SpatialExtent']['HorizontalSpatialDomain']
                 ['Geometry']['GPolygons'][0]['Boundary']['Points'])
         points = [(p['Longitude'],p['Latitude']) for p in points]
+        buffer = 1.5
         scene_poly = Polygon(points)
-        scene_bounds = scene_poly.bounds
-        scene_bounds_buff = scene_poly.buffer(1).bounds #buffered
-
-        logging.info(f'downloding DEM for scene bounds : {scene_bounds_buff}')
+        scene_poly_buf = scene_poly.buffer(buffer)
+        scene_bounds = scene_poly.bounds 
+        scene_bounds_buf = scene_poly.buffer(buffer).bounds #buffered
+        logging.info(f'Scene bounds : {scene_bounds}')
+        logging.info(f'Downloding DEM for  bounds : {scene_bounds_buf}')
         logging.info(f'type of DEM being downloaded : {otf_cfg["dem_type"]}')
+
+        # transform the scene geometries to 3031
+        scene_poly_3031 = transform_polygon(4326, 3031, scene_poly)
+        scene_poly_buf_3031 = transform_polygon(4326, 3031, scene_poly_buf)
+        scene_bounds_3031 = transform_polygon(4326, 3031, box(*scene_bounds))
+        scene_bounds_buf_3031 = transform_polygon(4326, 3031, box(*scene_bounds_buf))
 
         # make folders and set filenames
         dem_dl_folder = os.path.join(otf_cfg['dem_folder'],otf_cfg['dem_type'])
@@ -150,7 +163,7 @@ if __name__ == "__main__":
         DEM_PATH = os.path.join(dem_dl_folder,dem_filename)
 
         # get the DEM and geometry information
-        dem_data, dem_meta = stitch_dem(scene_bounds_buff,
+        dem_data, dem_meta = stitch_dem(scene_bounds_buf,
                         dem_name=otf_cfg['dem_type'],
                         dst_ellipsoidal_height=False,
                         dst_area_or_point='Point')
@@ -178,11 +191,11 @@ if __name__ == "__main__":
             dem_meta['height'], dem_meta['width'], dem_meta['transform'])
         logging.info(f'Downloaded DEM bounds: {dem_bounds}')
         # Pad the DEM if it does not cover the full area od the scene
-        if not box(*dem_bounds).contains_properly(box(*scene_bounds_buff)):
+        if not box(*dem_bounds).contains_properly(box(*scene_bounds_buf)):
             logging.warning('Downloaded DEM does not cover scene bounds, filling with nodata')
             logging.info('Expanding the bounds of the downloaded DEM')
             DEM_ADJ_PATH = DEM_PATH.replace('.tif','_adj.tif') #adjusted DEM path
-            expand_raster_with_bounds(DEM_PATH, DEM_ADJ_PATH, dem_bounds, scene_bounds_buff)
+            expand_raster_with_bounds(DEM_PATH, DEM_ADJ_PATH, dem_bounds, scene_bounds_buf)
             logging.info(f'Replacing old DEM: {DEM_PATH}')
             os.remove(DEM_PATH)
             os.rename(DEM_ADJ_PATH, DEM_PATH)
@@ -215,7 +228,6 @@ if __name__ == "__main__":
             trg_crs = otf_cfg['pyrosar_t_srs']
             logging.info(f'target crs: {trg_crs}')
 
-
         # run the snap process
         logging.info(f'PROCESS 2: Produce Backscatter')
 
@@ -247,17 +259,18 @@ if __name__ == "__main__":
         logging.info(f'Process graph: {xml_filename}')
         scene_start_id = xml_filename.split('_')[6]
         for f in os.listdir(otf_cfg['pyrosar_output_folder']):
-            if ((scene_start_id in f) and ('.tif' in f)):
-                tif_path = os.path.join(otf_cfg['pyrosar_output_folder'], f)
-                success['pyrosar-rtc'].append(tif_path)
+            if ((scene_start_id in f) and ('.tif' in f) and ('rtc' in f)):
+                # path to rtc tif
+                RTC_TIF_PATH = os.path.join(otf_cfg['pyrosar_output_folder'], f)
+                success['pyrosar-rtc'].append(RTC_TIF_PATH)
                 logging.info(f'RTC Backscatter successfully made')
 
         t4 = time.time()
         timing['RTC Processing'] = t4 - t3
 
         # make a thumbnail image to upload
-        IMG_PATH = os.path.join(otf_cfg['pyrosar_output_folder'], f'{xml_filename.replace('.xml','.png')}')
-        save_tif_as_image(tif_path, IMG_PATH, downscale_factor=6)
+        IMG_PATH = str(RTC_TIF_PATH.replace('.tif','.png'))
+        save_tif_as_image(RTC_TIF_PATH, IMG_PATH, downscale_factor=6)
 
         if otf_cfg['push_to_s3']:
             logging.info(f'PROCESS 3: Push results to S3 bucket')
@@ -266,8 +279,8 @@ if __name__ == "__main__":
             # set the path in the bucket
             bucket_folder = os.path.join('pyrosar/',
                                          otf_cfg['dem_type'],
-                                         f'{trg_crs.split(":")[-1]}',
-                                         SCENE_NAME)
+                                         f'{str(trg_crs).split(":")[-1]}',
+                                         f'{SCENE_NAME}')
             for file_ in outputs:
                 file_path = os.path.join(otf_cfg['pyrosar_output_folder'],file_)
                 bucket_path = os.path.join(bucket_folder,file_)
