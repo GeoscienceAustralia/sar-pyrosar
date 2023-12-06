@@ -59,12 +59,6 @@ if __name__ == "__main__":
     with open(args.config, 'r', encoding='utf8') as fin:
         otf_cfg = yaml.safe_load(fin.read())
     
-    # read in credentials to download from ASF
-    with open(otf_cfg['earthdata_credentials'], "r") as f:
-        txt = str(f.read())
-        uid = txt.split('\n')[1].split('login')[-1][1:]
-        pswd = txt.split('\n')[2].split('password')[-1][1:]
-
     # loop through the list of scenes
     # download data -> produce backscatter -> save
     for i, scene in enumerate(otf_cfg['scenes']):
@@ -85,6 +79,15 @@ if __name__ == "__main__":
         logging.info(f'processing scene {i+1} of {len(otf_cfg["scenes"])} : {scene}')
         logging.info(f'PROCESS 1: Downloads')
         
+        # read in aws credentials and set as environ vars
+        logging.info(f'setting aws credentials from : {otf_cfg["aws_credentials"]}')
+        with open(otf_cfg['aws_credentials'], "r", encoding='utf8') as f:
+            aws_cfg = yaml.safe_load(f.read())
+            # set all keys as environment variables
+            for k in aws_cfg.keys():
+                logging.info(f'setting {k}')
+                os.environ[k] = aws_cfg[k]
+            
         # set parameters to limit search results to single scene
         level = scene.split('_')[2]
         mode = scene.split('_')[1]
@@ -112,6 +115,13 @@ if __name__ == "__main__":
         if len(asf_results) > 1:
             logging.error(f'{asf_results} scenes found, expecting one. \
                           check specified processingLevel ()')
+        
+        # read in credentials to download from ASF
+        logging.info(f'setting earthdata credentials from: {otf_cfg["earthdata_credentials"]}')
+        with open(otf_cfg['earthdata_credentials'], "r", encoding='utf8') as f:
+            earthdata_cfg = yaml.safe_load(f.read())
+            earthdata_uid = earthdata_cfg['login']
+            earthdata_pswd = earthdata_cfg['password']
         
         # download scene
         logging.info(f'downloading scene')
@@ -242,11 +252,13 @@ if __name__ == "__main__":
             allow_RES_OSV=True,
             externalDEMFile=DEM_PATH,
             externalDEMNoDataValue=-9999,
+            externalDEMApplyEGM=False, # TODO download
             spacing=otf_cfg['pyrosar_spacing'],
             scaling=otf_cfg['pyrosar_scaling'],
             refarea=otf_cfg['pyrosar_refarea'],
             t_srs=trg_crs,
-            returnWF=True
+            returnWF=True,
+            clean_edges=True,
             )
         logging.getLogger().setLevel(logging.INFO)
 
