@@ -126,7 +126,7 @@ if __name__ == "__main__":
         # download scene
         logging.info(f'downloading scene')
         session = asf.ASFSession()
-        session.auth_with_creds(uid,pswd)
+        session.auth_with_creds(earthdata_uid,earthdata_pswd)
         SCENE_NAME = asf_results[0].__dict__['umm']['GranuleUR'].split('-')[0]
         scene_zip = os.path.join(otf_cfg['scene_folder'], SCENE_NAME + '.zip')
         asf_result.download(path=otf_cfg['scene_folder'], session=session)
