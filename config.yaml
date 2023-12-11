@@ -1,25 +1,25 @@
 # list of scenes to download and process
 scenes: [
-        # # Antarctica - Maitri Station (-70.76683, 11.7308)
-        # 'S1B_IW_SLC__1SSH_20190315T195015_20190315T195045_015369_01CC73_DB8B',
-        # 'S1B_IW_SLC__1SSH_20190327T195016_20190327T195045_015544_01D236_9504',
-        # 'S1B_IW_SLC__1SSH_20190526T195018_20190526T195048_016419_01EE8D_53BC',
-        # # Antarctica - Bharati Station (-69.4068, 76.19525)
-        # 'S1B_IW_SLC__1SSH_20190223T222639_20190223T222706_015079_01C2E9_1D63',
-        # 'S1A_IW_SLC__1SSH_20190605T222724_20190605T222751_027550_031BE1_AD3A',
-        # # Antarctica - lutzow-holm bay (-69.6901, 39.4502)
-        # 'S1A_IW_SLC__1SSH_20220223T175626_20220223T175653_042043_05021A_BB8E',
-        # 'S1A_IW_SLC__1SSH_20221021T175636_20221021T175703_045543_0571D7_989F',
-        # # Antarctica - Erebus Ice Tongue (-77.7018, 166.7541) 
-        # 'S1A_IW_SLC__1SSH_20190926T124734_20190926T124804_029192_0350B9_FA6B',
-        # # Antarctica - Heard, McDonald Island (-53.1057, 73.5431) 
-        # 'S1A_IW_SLC__1SSH_20230127T142750_20230127T142817_046970_05A22F_17F7',
-        # 'S1A_IW_SLC__1SSH_20230620T142747_20230620T142817_049070_05E69E_0BC7',
-        # # Antarctica - Brunt Ice Shelf (-75.216667, -25.683333) 
-        # 'S1B_IW_SLC__1SSH_20210223T233056_20210223T233124_025740_031194_E7BE',
-        # 'S1B_IW_SLC__1SSH_20210228T035005_20210228T035033_025801_03138F_8CB2',
-        # # Antarctica - Victoria Land, East Ross Sea (-72.5, 168) 
-        # 'S1A_IW_SLC__1SSH_20230120T160153_20230120T160220_046869_059EC6_F364',
+        # Antarctica - Maitri Station (-70.76683, 11.7308)
+        'S1B_IW_SLC__1SSH_20190315T195015_20190315T195045_015369_01CC73_DB8B',
+        'S1B_IW_SLC__1SSH_20190327T195016_20190327T195045_015544_01D236_9504',
+        'S1B_IW_SLC__1SSH_20190526T195018_20190526T195048_016419_01EE8D_53BC',
+        # Antarctica - Bharati Station (-69.4068, 76.19525)
+        'S1B_IW_SLC__1SSH_20190223T222639_20190223T222706_015079_01C2E9_1D63',
+        'S1A_IW_SLC__1SSH_20190605T222724_20190605T222751_027550_031BE1_AD3A',
+        # Antarctica - lutzow-holm bay (-69.6901, 39.4502)
+        'S1A_IW_SLC__1SSH_20220223T175626_20220223T175653_042043_05021A_BB8E',
+        'S1A_IW_SLC__1SSH_20221021T175636_20221021T175703_045543_0571D7_989F',
+        # Antarctica - Erebus Ice Tongue (-77.7018, 166.7541) 
+        'S1A_IW_SLC__1SSH_20190926T124734_20190926T124804_029192_0350B9_FA6B',
+        # Antarctica - Heard, McDonald Island (-53.1057, 73.5431) 
+        'S1A_IW_SLC__1SSH_20230127T142750_20230127T142817_046970_05A22F_17F7',
+        'S1A_IW_SLC__1SSH_20230620T142747_20230620T142817_049070_05E69E_0BC7',
+        # Antarctica - Brunt Ice Shelf (-75.216667, -25.683333) 
+        'S1B_IW_SLC__1SSH_20210223T233056_20210223T233124_025740_031194_E7BE',
+        'S1B_IW_SLC__1SSH_20210228T035005_20210228T035033_025801_03138F_8CB2',
+        # Antarctica - Victoria Land, East Ross Sea (-72.5, 168) 
+        'S1A_IW_SLC__1SSH_20230120T160153_20230120T160220_046869_059EC6_F364',
         'S1A_IW_SLC__1SSH_20230116T100627_20230116T100655_046807_059CB3_FCC7',
         # Australia - QLD corner reflector (-27.0252,150.5759)
         # 'S1A_IW_SLC__1SSH_20220104T083315_20220104T083342_041308_04E91B_8E5F',
@@ -43,7 +43,7 @@ snap_path: /home/ec2-user/SNAP9/bin #'/Applications/snap/bin'
 earthdata_credentials: credentials/credentials_earthdata.yaml
 
 # location of aws credentials
-aws_credentials: credentials/credentials_earthdata.yaml
+aws_credentials: credentials/credentials_aws.yaml
 
 # directory to save scenes
 scene_folder: /data/scenes
@@ -58,8 +58,12 @@ dem_folder: /data/dem
 # list of valid dems in https://pypi.org/project/dem-stitcher/
 dem_type: glo_30
 
+# add a prefix to the scene in the s3 bucket
+# mostly for testing, leave blank to exclude
+scene_prefix: 
+
 # s3 bucket to push the results
-# formatting will be {s3_bucket}/{opera-rtc}/{crs}/{scene}/{product_id}
+# formatting will be {s3_bucket}/{opera-rtc}/{crs}/{scene_prefix}{scene}/{product_id}
 s3_bucket: deant-data-public-dev
 
 # whether to push to s3
@@ -86,8 +90,7 @@ pyrosar_refarea: gamma0
 # A target geographic reference system in WKT, EPSG, PROJ4 or OPENGIS format.
 # See function :func:`spatialist.auxil.crsConvert()` for details.
 # e.g. 4326, 3031
-# by default set the crs based on the location of the scene on
-# the sentinel-2 MGRS grid
+# by default set the crs based on the UTM location of the scene centre
 #pyrosar_t_srs: default
 pyrosar_t_srs: 3031
 

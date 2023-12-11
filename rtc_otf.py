@@ -252,13 +252,14 @@ if __name__ == "__main__":
             allow_RES_OSV=True,
             externalDEMFile=DEM_PATH,
             externalDEMNoDataValue=-9999,
-            externalDEMApplyEGM=False, # TODO download
+            externalDEMApplyEGM=False, 
             spacing=otf_cfg['pyrosar_spacing'],
             scaling=otf_cfg['pyrosar_scaling'],
             refarea=otf_cfg['pyrosar_refarea'],
             t_srs=trg_crs,
             returnWF=True,
             clean_edges=True,
+            export_extra=["localIncidenceAngle","DEM","layoverShadowMask","scatteringArea"],
             )
         logging.getLogger().setLevel(logging.INFO)
 
@@ -289,10 +290,11 @@ if __name__ == "__main__":
             bucket = otf_cfg['s3_bucket']
             outputs = [x for x in os.listdir(otf_cfg['pyrosar_output_folder'])]
             # set the path in the bucket
+            SCENE_PREFIX = '' if {otf_cfg["scene_prefix"]} == None else {otf_cfg["scene_prefix"]}
             bucket_folder = os.path.join('pyrosar/',
                                          otf_cfg['dem_type'],
                                          f'{str(trg_crs).split(":")[-1]}',
-                                         f'{SCENE_NAME}')
+                                         f'{SCENE_PREFIX}{SCENE_NAME}')
             for file_ in outputs:
                 file_path = os.path.join(otf_cfg['pyrosar_output_folder'],file_)
                 bucket_path = os.path.join(bucket_folder,file_)
@@ -325,11 +327,19 @@ if __name__ == "__main__":
                 shutil.rmtree(SAFE_PATH)
             logging.info(f'Clearing directory: {otf_cfg["pyrosar_output_folder"]}')
             try:
+                # pyrosar downloads orbit files to current directory, find and delete
+                logging.debug('Deleting Orbit files')
+                for file_ in os.listdir(os.getcwd()):
+                    if (file_.endswith('.EOF') and ('ORB' in file_)):
+                        os.remove(os.path.join(os.getcwd(), file_))
+                logging.debug(f'Deleting files in {otf_cfg["pyrosar_output_folder"]}')
                 for file_ in os.listdir(otf_cfg['pyrosar_output_folder']):
                     if 'log' not in file_:
                         # we clear logs at the end after pushing
                         os.remove(os.path.join(otf_cfg['pyrosar_output_folder'], file_))
+                logging.debug('Files deleted')
             except:
+                logging.debug(f'Changing permissions and deleting files in {otf_cfg["pyrosar_output_folder"]}')
                 os.system(f'sudo chmod -R 777 {otf_cfg["pyrosar_output_folder"]}')
                 for file_ in os.listdir(otf_cfg['pyrosar_output_folder']):
                     if 'log' not in file_:
