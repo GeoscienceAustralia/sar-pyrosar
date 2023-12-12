@@ -290,7 +290,7 @@ if __name__ == "__main__":
             bucket = otf_cfg['s3_bucket']
             outputs = [x for x in os.listdir(otf_cfg['pyrosar_output_folder'])]
             # set the path in the bucket
-            SCENE_PREFIX = '' if {otf_cfg["scene_prefix"]} == None else {otf_cfg["scene_prefix"]}
+            SCENE_PREFIX = '' if otf_cfg["scene_prefix"] == None else otf_cfg["scene_prefix"]
             bucket_folder = os.path.join('pyrosar/',
                                          otf_cfg['dem_type'],
                                          f'{str(trg_crs).split(":")[-1]}',
