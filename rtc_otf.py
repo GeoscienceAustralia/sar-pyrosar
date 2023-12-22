@@ -64,11 +64,12 @@ if __name__ == "__main__":
     for i, scene in enumerate(otf_cfg['scenes']):
         
         # add the scene name to the out folder
-        otf_cfg['pyrosar_output_folder'] = os.path.join(otf_cfg['pyrosar_output_folder'],scene)
-        os.makedirs(otf_cfg['pyrosar_output_folder'], exist_ok=True)
+        OUT_FOLDER = otf_cfg['pyrosar_output_folder']
+        SCENE_OUT_FOLDER = os.path.join(OUT_FOLDER,scene)
+        os.makedirs(SCENE_OUT_FOLDER, exist_ok=True)
         
         #setup logging
-        log_path = os.path.join(otf_cfg['pyrosar_output_folder'],scene+'.logs')
+        log_path = os.path.join(SCENE_OUT_FOLDER,scene+'.logs')
 
         # create a haandler to write to file and stdout/console
         logging_file_handler = setup_logging(log_path)
@@ -248,7 +249,7 @@ if __name__ == "__main__":
         logging.info(scene_zip)
         logging.getLogger().setLevel(logging.DEBUG)
         scene_workflow = geocode(infile=scene_zip,
-            outdir=otf_cfg['pyrosar_output_folder'],
+            outdir=SCENE_OUT_FOLDER,
             allow_RES_OSV=True,
             externalDEMFile=DEM_PATH,
             externalDEMNoDataValue=-9999,
@@ -265,16 +266,16 @@ if __name__ == "__main__":
 
         if scene_workflow is None:
             # scene might already be processed
-            xml_filename = find_files(otf_cfg['pyrosar_output_folder'], 'xml')[0]
+            xml_filename = find_files(SCENE_OUT_FOLDER, 'xml')[0]
             # if not an error will be raised as the process failed 
         else:
             _, xml_filename = os.path.split(scene_workflow)
         logging.info(f'Process graph: {xml_filename}')
         scene_start_id = xml_filename.split('_')[6]
-        for f in os.listdir(otf_cfg['pyrosar_output_folder']):
+        for f in os.listdir(SCENE_OUT_FOLDER):
             if ((scene_start_id in f) and ('.tif' in f) and ('rtc' in f)):
                 # path to rtc tif
-                RTC_TIF_PATH = os.path.join(otf_cfg['pyrosar_output_folder'], f)
+                RTC_TIF_PATH = os.path.join(SCENE_OUT_FOLDER, f)
                 success['pyrosar-rtc'].append(RTC_TIF_PATH)
                 logging.info(f'RTC Backscatter successfully made')
 
@@ -288,7 +289,7 @@ if __name__ == "__main__":
         if otf_cfg['push_to_s3']:
             logging.info(f'PROCESS 3: Push results to S3 bucket')
             bucket = otf_cfg['s3_bucket']
-            outputs = [x for x in os.listdir(otf_cfg['pyrosar_output_folder'])]
+            outputs = [x for x in os.listdir(SCENE_OUT_FOLDER)]
             # set the path in the bucket
             SCENE_PREFIX = '' if otf_cfg["scene_prefix"] == None else otf_cfg["scene_prefix"]
             bucket_folder = os.path.join('pyrosar/',
@@ -296,7 +297,7 @@ if __name__ == "__main__":
                                          f'{str(trg_crs).split(":")[-1]}',
                                          f'{SCENE_PREFIX}{SCENE_NAME}')
             for file_ in outputs:
-                file_path = os.path.join(otf_cfg['pyrosar_output_folder'],file_)
+                file_path = os.path.join(SCENE_OUT_FOLDER,file_)
                 bucket_path = os.path.join(bucket_folder,file_)
                 logging.info(f'Uploading file: {file_path}')
                 logging.info(f'Destination: {bucket_path}')
@@ -325,26 +326,26 @@ if __name__ == "__main__":
             if os.path.exists(SAFE_PATH):
                 logging.info(f'Clearing SAFE directory: {SAFE_PATH}')
                 shutil.rmtree(SAFE_PATH)
-            logging.info(f'Clearing directory: {otf_cfg["pyrosar_output_folder"]}')
+            logging.info(f'Clearing directory: {SCENE_OUT_FOLDER}')
             try:
                 # pyrosar downloads orbit files to current directory, find and delete
                 logging.debug('Deleting Orbit files')
                 for file_ in os.listdir(os.getcwd()):
                     if (file_.endswith('.EOF') and ('ORB' in file_)):
                         os.remove(os.path.join(os.getcwd(), file_))
-                logging.debug(f'Deleting files in {otf_cfg["pyrosar_output_folder"]}')
-                for file_ in os.listdir(otf_cfg['pyrosar_output_folder']):
+                logging.debug(f'Deleting files in {SCENE_OUT_FOLDER}')
+                for file_ in os.listdir(SCENE_OUT_FOLDER):
                     if 'log' not in file_:
                         # we clear logs at the end after pushing
-                        os.remove(os.path.join(otf_cfg['pyrosar_output_folder'], file_))
+                        os.remove(os.path.join(SCENE_OUT_FOLDER, file_))
                 logging.debug('Files deleted')
             except:
-                logging.debug(f'Changing permissions and deleting files in {otf_cfg["pyrosar_output_folder"]}')
-                os.system(f'sudo chmod -R 777 {otf_cfg["pyrosar_output_folder"]}')
-                for file_ in os.listdir(otf_cfg['pyrosar_output_folder']):
+                logging.debug(f'Changing permissions and deleting files in {SCENE_OUT_FOLDER}')
+                os.system(f'sudo chmod -R 777 {SCENE_OUT_FOLDER}')
+                for file_ in os.listdir(SCENE_OUT_FOLDER):
                     if 'log' not in file_:
                         # we clear logs at the end after pushing
-                        os.remove(os.path.join(otf_cfg['pyrosar_output_folder'], file_))
+                        os.remove(os.path.join(SCENE_OUT_FOLDER, file_))
             
         t6 = time.time()
         timing['Delete Files'] = t6 - t5
