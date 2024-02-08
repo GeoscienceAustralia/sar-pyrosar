@@ -11,7 +11,8 @@ from utils import (upload_file,
                    find_files, 
                    expand_raster_with_bounds, 
                    save_tif_as_image,
-                   transform_polygon)
+                   transform_polygon,
+                   compress_tif)
 import time
 import shutil
 from pyroSAR.snap import geocode
@@ -267,24 +268,40 @@ if __name__ == "__main__":
         if scene_workflow is None:
             # scene might already be processed
             xml_filename = find_files(SCENE_OUT_FOLDER, 'xml')[0]
+            _, xml_filename = os.path.split(str(xml_filename))
+            logging.info(f'Process graph: {xml_filename}')
             # if not an error will be raised as the process failed 
         else:
             _, xml_filename = os.path.split(scene_workflow)
-        logging.info(f'Process graph: {xml_filename}')
+            logging.info(f'Process graph: {xml_filename}')
         scene_start_id = xml_filename.split('_')[6]
+        # look for tif if the output product is in tif formate
+        RTC_TIF_PATH = ''
+        output_folders = [SCENE_OUT_FOLDER] # folders to upolod files from
         for f in os.listdir(SCENE_OUT_FOLDER):
             if ((scene_start_id in f) and ('.tif' in f) and ('rtc' in f)):
                 # path to rtc tif
                 RTC_TIF_PATH = os.path.join(SCENE_OUT_FOLDER, f)
+                IMG_PATH = str(RTC_TIF_PATH.replace('.tif','.png'))
                 success['pyrosar-rtc'].append(RTC_TIF_PATH)
-                logging.info(f'RTC Backscatter successfully made')
+                logging.info(f'RTC Backscatter successfully made : {RTC_TIF_PATH}')
+        
+        # look through nested folder if tif not found, find .img
+        RTC_SUB_FOLDER = os.path.join(SCENE_OUT_FOLDER,xml_filename.replace('_proc.xml',''))
+        if os.path.exists(RTC_SUB_FOLDER):
+            output_folders.append(RTC_SUB_FOLDER)
+            for f in os.listdir(RTC_SUB_FOLDER):
+                if (('.img' in f) and ('HH' in f) and (('Gamma' in f) or ('Sigma' in f))):
+                    RTC_TIF_PATH = os.path.join(RTC_SUB_FOLDER, f)
+                    IMG_PATH = str(RTC_TIF_PATH.replace('.tif','.png'))
+                    success['pyrosar-rtc'].append(RTC_TIF_PATH)
+                    logging.info(f'RTC Backscatter successfully made : {RTC_TIF_PATH}')
 
         t4 = time.time()
         timing['RTC Processing'] = t4 - t3
 
         # make a thumbnail image to upload
-        IMG_PATH = str(RTC_TIF_PATH.replace('.tif','.png'))
-        save_tif_as_image(RTC_TIF_PATH, IMG_PATH, downscale_factor=6)
+        # save_tif_as_image(RTC_TIF_PATH, IMG_PATH, downscale_factor=6)
 
         if otf_cfg['push_to_s3']:
             logging.info(f'PROCESS 3: Push results to S3 bucket')
@@ -292,18 +309,29 @@ if __name__ == "__main__":
             outputs = [x for x in os.listdir(SCENE_OUT_FOLDER)]
             # set the path in the bucket
             SCENE_PREFIX = '' if otf_cfg["scene_prefix"] == None else otf_cfg["scene_prefix"]
-            bucket_folder = os.path.join('pyrosar/',
-                                         otf_cfg['dem_type'],
-                                         f'{str(trg_crs).split(":")[-1]}',
-                                         f'{SCENE_PREFIX}{SCENE_NAME}')
-            for file_ in outputs:
-                file_path = os.path.join(SCENE_OUT_FOLDER,file_)
-                bucket_path = os.path.join(bucket_folder,file_)
-                logging.info(f'Uploading file: {file_path}')
-                logging.info(f'Destination: {bucket_path}')
-                upload_file(file_name=file_path, 
-                            bucket=bucket, 
-                            object_name=bucket_path)
+            S3_BUCKET_FOLDER = '' if otf_cfg["s3_bucket_folder"] == None else otf_cfg["s3_bucket_folder"]
+            bucket_folder = os.path.join(
+                S3_BUCKET_FOLDER,
+                'pyrosar',
+                otf_cfg['dem_type'],
+                f'{str(trg_crs).split(":")[-1]}',
+                f'{SCENE_PREFIX}{SCENE_NAME}')
+            for output_folder in output_folders:
+                outputs = [x for x in os.listdir(output_folder)]
+                for file_ in outputs:
+                    if '.' in file_[-6:]: 
+                        #ensure is a file
+                        continue
+                    file_path = os.path.join(output_folder,file_)
+                    if otf_cfg["img_compression_type"] is not None:
+                        if (('.img' in file_) or ('.tif' in file_)):
+                            compress_tif(file_path, file_path, compression=otf_cfg["img_compression_type"])
+                    bucket_path = os.path.join(bucket_folder,file_)
+                    logging.info(f'Uploading file: {file_path}')
+                    logging.info(f'Destination: {bucket_path}')
+                    upload_file(file_name=file_path, 
+                                bucket=bucket, 
+                                object_name=bucket_path)
                 
             if otf_cfg['upload_dem']:
                 bucket_path = os.path.join(bucket_folder,dem_filename)
