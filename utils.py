@@ -7,6 +7,7 @@ from botocore.exceptions import ClientError
 import os
 import rasterio
 from rasterio.transform import from_origin
+from rasterio.enums import Resampling
 import numpy as np
 import cv2
 import pyproj
@@ -131,6 +132,7 @@ def normalise_bands(image, n_bands, p_min=5, p_max=95):
     return np.array(norm) # c,h,w in blue, green, red    
 
 def save_tif_as_image(tif_path, img_path, downscale_factor=5):
+    logging.info(f'saving tif as image : {tif_path}')
     with rasterio.open(tif_path) as src:
         X = src.read()
         img = normalise_bands(X,1)
@@ -142,3 +144,23 @@ def save_tif_as_image(tif_path, img_path, downscale_factor=5):
                          dsize=(new_h, new_w), 
                          interpolation=cv2.INTER_CUBIC)
         cv2.imwrite(img_path, res)
+
+def compress_tif(input_tiff: str, output_tiff: str , compression : str ='deflate'):
+
+    
+    logging.info(f'compressing tif : {input_tiff}')
+    logging.info(f'compression method : {compression}')
+    with rasterio.open(input_tiff) as src:
+        # Prepare the profile for the new compressed TIFF
+        profile = src.profile
+        profile.update(
+            compress=compression,  # Use DEFLATE compression
+            predictor=2  # Predictor value for DEFLATE compression (optional)
+        )
+
+        # Create a new compressed TIFF file
+        with rasterio.open(output_tiff, 'w', **profile) as dst:
+            # Copy the data from the source to the destination
+            dst.write(src.read())
+
+    logging.info(f'compressed tif saved: {output_tiff}')
