@@ -261,7 +261,7 @@ if __name__ == "__main__":
             t_srs=trg_crs,
             returnWF=True,
             clean_edges=True,
-            export_extra=["localIncidenceAngle","DEM","layoverShadowMask","scatteringArea"],
+            export_extra=["localIncidenceAngle","DEM","layoverShadowMask","scatteringArea","gammaSigmaRatio"],
             )
         logging.getLogger().setLevel(logging.INFO)
 
@@ -323,9 +323,9 @@ if __name__ == "__main__":
                         #ensure is a file
                         continue
                     file_path = os.path.join(output_folder,file_)
-                    if otf_cfg["img_compression_type"] is not None:
-                        if (('.img' in file_) or ('.tif' in file_)):
-                            compress_tif(file_path, file_path, compression=otf_cfg["img_compression_type"])
+                    # if otf_cfg["img_compression_type"] is not None:
+                    #     if (('.img' in file_) or ('.tif' in file_)):
+                    #         compress_tif(file_path, file_path, compression=otf_cfg["img_compression_type"])
                     bucket_path = os.path.join(bucket_folder,file_)
                     logging.info(f'Uploading file: {file_path}')
                     logging.info(f'Destination: {bucket_path}')
@@ -381,13 +381,15 @@ if __name__ == "__main__":
         logging.info(f'Scene finished: {SCENE_NAME}')
         logging.info(f'Elapsed time: {((time.time() - t0)/60)} minutes')
         timing['Total'] = t6 - t0
-
+        
+        # save timing file
+        timing_file = SCENE_NAME + '_timing.json'
+        with open(timing_file, 'w') as fp:
+                json.dump(timing, fp)
+        
         # push timings + logs to s3
         if otf_cfg['push_to_s3']:
-            timing_file = SCENE_NAME + '_timing.json'
             bucket_path = os.path.join(bucket_folder, timing_file)
-            with open(timing_file, 'w') as fp:
-                json.dump(timing, fp)
             logging.info(f'Uploading file: {timing_file}')
             logging.info(f'Destination: {bucket_path}')
             upload_file(file_name=timing_file, 
