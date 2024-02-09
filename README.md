@@ -10,9 +10,9 @@ On the fly production of Sentinel-1 RTC Backscatter using pyroSAR (download -> p
     - Earthdata credentials - https://urs.earthdata.nasa.gov/users/new
     - Add these to both the credentials_earthdata.yaml and .netrc file
     - Add AWS account details to credentials_earthdata.yaml
-- build the docker container
+- run the setup script to build the docker container
 ```bash
-docker build . -t pyrosar
+sh setup.sh
 ```
 
 # Instructions
