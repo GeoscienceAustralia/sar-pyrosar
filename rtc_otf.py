@@ -319,7 +319,7 @@ if __name__ == "__main__":
             for output_folder in output_folders:
                 outputs = [x for x in os.listdir(output_folder)]
                 for file_ in outputs:
-                    if '.' in file_[-6:]: 
+                    if '.' not in file_[-6:]: 
                         #ensure is a file
                         continue
                     file_path = os.path.join(output_folder,file_)
