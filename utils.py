@@ -76,8 +76,16 @@ def upload_file(file_name, bucket, object_name=None):
         logging.error(e)
         return False
 
-def expand_raster_with_bounds(input_raster, output_raster, old_bounds, new_bounds):
+def expand_raster_with_bounds(input_raster, output_raster, old_bounds, new_bounds, fill_value=None):
+    """Expand the raster to the desired bounds. Resolution and Location are preserved.
 
+    Args:
+        input_raster (str): input raster path
+        output_raster (str): out raster path
+        old_bounds (tuple): current bounds
+        new_bounds (tuple): new bounds
+        fill_value (float, int, optional): Fill value to pad with. Defaults to None and nodata is used.
+    """
     # Open the raster dataset
     with rasterio.open(input_raster, 'r') as src:
         # get old bounds
@@ -106,18 +114,21 @@ def expand_raster_with_bounds(input_raster, output_raster, old_bounds, new_bound
         })
         # make a temp file
         tmp = output_raster.replace('.tif','_tmp.tif')
-        logging.debug(f'Making temp file: {tmp}')
+        logging.info(f'Making temp file: {tmp}')
         with rasterio.open(tmp, 'w', **profile) as dst:
             # Read the data from the source and write it to the destination
-            data = np.full((new_height, new_width), fill_value=profile['nodata'], dtype=profile['dtype'])
+            fill_value = profile['nodata'] if fill_value is None else fill_value
+            logging.info(f'Padding new raster extent with value: {fill_value}')
+            data = np.full((new_height, new_width), fill_value=fill_value, dtype=profile['dtype'])
             dst.write(data, 1)
         # merge the old raster into the new raster with expanded bounds 
         logging.info(f'Merging original raster and expanding bounds...')
-        rasterio.merge.merge(
-            datasets=[tmp, input_raster],
-            method='max',
-            dst_path=output_raster)
-        os.remove(tmp)
+    del data
+    rasterio.merge.merge(
+        datasets=[tmp, input_raster],
+        method='max',
+        dst_path=output_raster)
+    os.remove(tmp)
 
 def normalise_bands(image, n_bands, p_min=5, p_max=95):
     norm = []
@@ -144,23 +155,3 @@ def save_tif_as_image(tif_path, img_path, downscale_factor=5):
                          dsize=(new_h, new_w), 
                          interpolation=cv2.INTER_CUBIC)
         cv2.imwrite(img_path, res)
-
-def compress_tif(input_tiff: str, output_tiff: str , compression : str ='deflate'):
-
-    
-    logging.info(f'compressing tif : {input_tiff}')
-    logging.info(f'compression method : {compression}')
-    with rasterio.open(input_tiff) as src:
-        # Prepare the profile for the new compressed TIFF
-        profile = src.profile
-        profile.update(
-            compress=compression,  # Use DEFLATE compression
-            predictor=2  # Predictor value for DEFLATE compression (optional)
-        )
-
-        # Create a new compressed TIFF file
-        with rasterio.open(output_tiff, 'w', **profile) as dst:
-            # Copy the data from the source to the destination
-            dst.write(src.read())
-
-    logging.info(f'compressed tif saved: {output_tiff}')

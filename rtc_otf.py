@@ -11,8 +11,8 @@ from utils import (upload_file,
                    find_files, 
                    expand_raster_with_bounds, 
                    save_tif_as_image,
-                   transform_polygon,
-                   compress_tif)
+                   transform_polygon
+                   )
 import time
 import shutil
 from pyroSAR.snap import geocode
@@ -153,7 +153,7 @@ if __name__ == "__main__":
         points = (asf_result.__dict__['umm']['SpatialExtent']['HorizontalSpatialDomain']
                 ['Geometry']['GPolygons'][0]['Boundary']['Points'])
         points = [(p['Longitude'],p['Latitude']) for p in points]
-        buffer = 1.5
+        buffer = 0.5
         scene_poly = Polygon(points)
         scene_poly_buf = scene_poly.buffer(buffer)
         scene_bounds = scene_poly.bounds 
@@ -248,11 +248,6 @@ if __name__ == "__main__":
         if otf_cfg['snap_path'] not in os.environ['PATH']:
             os.environ['PATH'] = os.environ['PATH'] + ':' + otf_cfg['snap_path']
 
-        # make temp dir for snap if specified
-        # for c in otf_cfg['gpt_args']:
-        #     if 'Djava.io.tmpdir' in c:
-        #         os.makedirs(c.split('=')[-1], exist_ok=True)
-
         logging.info(scene_zip)
         logging.getLogger().setLevel(logging.DEBUG)
         scene_workflow = geocode(infile=scene_zip,
@@ -282,7 +277,7 @@ if __name__ == "__main__":
             _, xml_filename = os.path.split(scene_workflow)
             logging.info(f'Process graph: {xml_filename}')
         scene_start_id = xml_filename.split('_')[6]
-        # look for tif if the output product is in tif formate
+        # look for tif if the output product is in tif format
         RTC_TIF_PATH = ''
         output_folders = [SCENE_OUT_FOLDER] # folders to upolod files from
         for f in os.listdir(SCENE_OUT_FOLDER):
@@ -308,7 +303,7 @@ if __name__ == "__main__":
         timing['RTC Processing'] = t4 - t3
 
         # make a thumbnail image to upload
-        # save_tif_as_image(RTC_TIF_PATH, IMG_PATH, downscale_factor=6)
+        save_tif_as_image(RTC_TIF_PATH, IMG_PATH, downscale_factor=6)
 
         if otf_cfg['push_to_s3']:
             logging.info(f'PROCESS 3: Push results to S3 bucket')
@@ -330,9 +325,6 @@ if __name__ == "__main__":
                         #ensure is a file
                         continue
                     file_path = os.path.join(output_folder,file_)
-                    # if otf_cfg["img_compression_type"] is not None:
-                    #     if (('.img' in file_) or ('.tif' in file_)):
-                    #         compress_tif(file_path, file_path, compression=otf_cfg["img_compression_type"])
                     bucket_path = os.path.join(bucket_folder,file_)
                     logging.info(f'Uploading file: {file_path}')
                     logging.info(f'Destination: {bucket_path}')
