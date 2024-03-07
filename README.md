@@ -8,8 +8,9 @@ On the fly production of Sentinel-1 RTC Backscatter using pyroSAR (download -> p
 # Setup
 - Add user credentials to the files stored in the credentials folder
     - Earthdata credentials - https://urs.earthdata.nasa.gov/users/new
-    - Add these to both the credentials_earthdata.yaml and .netrc file
-    - Add AWS account details to credentials_earthdata.yaml
+        - Add these to both *credentials_earthdata.yaml* and *.netrc* file
+    - Copernicus Dataspace - https://dataspace.copernicus.eu/
+        - Add these to *credentials_copernicus.yaml*
 - run the setup script to build the docker container
 ```bash
 sh setup.sh
