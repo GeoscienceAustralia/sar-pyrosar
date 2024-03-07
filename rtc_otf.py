@@ -174,44 +174,45 @@ if __name__ == "__main__":
         dem_filename = SCENE_NAME + '_dem.tif'
         DEM_PATH = os.path.join(dem_dl_folder,dem_filename)
 
-        # get the DEM and geometry information
-        dem_data, dem_meta = stitch_dem(scene_bounds_buf,
-                        dem_name=otf_cfg['dem_type'],
-                        dst_ellipsoidal_height=False,
-                        dst_area_or_point='Point')
-        
-        # save with rasterio
-        logging.info(f'saving dem to {DEM_PATH}')
-        # pyroSAR cant handle a nodata value of np.nan
-        # we therefore set this to be -9999
-        if np.isnan(dem_meta['nodata']):
-            logging.info(f'replace dem nodata from np.nan to -9999')
-            replace_nan = True
-            dem_meta['nodata'] = -9999
-        with rasterio.open(DEM_PATH, 'w', **dem_meta) as ds:
-            logging.info(f'DEM crs : {ds.meta["crs"]}')
-            if replace_nan:
-                dem_data[dem_data==np.nan] = -9999
-                dem_data[dem_data=='nan'] = -9999
-            ds.write(dem_data, 1)
-            ds.update_tags(AREA_OR_POINT='Point')
-        del dem_data
+        if True:
+            # get the DEM and geometry information
+            dem_data, dem_meta = stitch_dem(scene_bounds_buf,
+                            dem_name=otf_cfg['dem_type'],
+                            dst_ellipsoidal_height=False,
+                            dst_area_or_point='Point')
+            
+            # save with rasterio
+            logging.info(f'saving dem to {DEM_PATH}')
+            # pyroSAR cant handle a nodata value of np.nan
+            # we therefore set this to be -9999
+            if np.isnan(dem_meta['nodata']):
+                logging.info(f'replace dem nodata from np.nan to -9999')
+                replace_nan = True
+                dem_meta['nodata'] = -9999
+            with rasterio.open(DEM_PATH, 'w', **dem_meta) as ds:
+                logging.info(f'DEM crs : {ds.meta["crs"]}')
+                if replace_nan:
+                    dem_data[dem_data==np.nan] = -9999
+                    dem_data[dem_data=='nan'] = -9999
+                ds.write(dem_data, 1)
+                ds.update_tags(AREA_OR_POINT='Point')
+            del dem_data
 
-        # get the bounds of the downloaded DEM
-        # the full area requested may not be covered
-        dem_bounds = rasterio.transform.array_bounds(
-            dem_meta['height'], dem_meta['width'], dem_meta['transform'])
-        logging.info(f'Downloaded DEM bounds: {dem_bounds}')
-        # Pad the DEM if it does not cover the full area od the scene
-        if not box(*dem_bounds).contains_properly(box(*scene_bounds_buf)):
-            logging.warning('Downloaded DEM does not cover scene bounds, filling with nodata')
-            logging.info('Expanding the bounds of the downloaded DEM')
-            DEM_ADJ_PATH = DEM_PATH.replace('.tif','_adj.tif') #adjusted DEM path
-            expand_raster_with_bounds(DEM_PATH, DEM_ADJ_PATH, dem_bounds, scene_bounds_buf)
-            logging.info(f'Replacing old DEM: {DEM_PATH}')
-            os.remove(DEM_PATH)
-            os.rename(DEM_ADJ_PATH, DEM_PATH)
-        
+            # get the bounds of the downloaded DEM
+            # the full area requested may not be covered
+            dem_bounds = rasterio.transform.array_bounds(
+                dem_meta['height'], dem_meta['width'], dem_meta['transform'])
+            logging.info(f'Downloaded DEM bounds: {dem_bounds}')
+            # Pad the DEM if it does not cover the full area od the scene
+            if not box(*dem_bounds).contains_properly(box(*scene_bounds_buf)):
+                logging.warning('Downloaded DEM does not cover scene bounds, filling with nodata')
+                logging.info('Expanding the bounds of the downloaded DEM')
+                DEM_ADJ_PATH = DEM_PATH.replace('.tif','_adj.tif') #adjusted DEM path
+                expand_raster_with_bounds(DEM_PATH, DEM_ADJ_PATH, dem_bounds, scene_bounds_buf)
+                logging.info(f'Replacing old DEM: {DEM_PATH}')
+                os.remove(DEM_PATH)
+                os.rename(DEM_ADJ_PATH, DEM_PATH)
+            
 
         t3 = time.time()
         timing['Download DEM'] = t3 - t2
@@ -247,6 +248,11 @@ if __name__ == "__main__":
         if otf_cfg['snap_path'] not in os.environ['PATH']:
             os.environ['PATH'] = os.environ['PATH'] + ':' + otf_cfg['snap_path']
 
+        # make temp dir for snap if specified
+        # for c in otf_cfg['gpt_args']:
+        #     if 'Djava.io.tmpdir' in c:
+        #         os.makedirs(c.split('=')[-1], exist_ok=True)
+
         logging.info(scene_zip)
         logging.getLogger().setLevel(logging.DEBUG)
         scene_workflow = geocode(infile=scene_zip,
@@ -262,6 +268,7 @@ if __name__ == "__main__":
             returnWF=True,
             clean_edges=True,
             export_extra=["localIncidenceAngle","DEM","layoverShadowMask","scatteringArea","gammaSigmaRatio"],
+            #gpt_args=otf_cfg['gpt_args'],
             )
         logging.getLogger().setLevel(logging.INFO)
 
@@ -312,7 +319,7 @@ if __name__ == "__main__":
             S3_BUCKET_FOLDER = '' if otf_cfg["s3_bucket_folder"] == None else otf_cfg["s3_bucket_folder"]
             bucket_folder = os.path.join(
                 S3_BUCKET_FOLDER,
-                'pyrosar',
+                otf_cfg['software'],
                 otf_cfg['dem_type'],
                 f'{str(trg_crs).split(":")[-1]}',
                 f'{SCENE_PREFIX}{SCENE_NAME}')
