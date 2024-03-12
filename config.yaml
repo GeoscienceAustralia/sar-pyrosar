@@ -100,7 +100,7 @@ earthdata_credentials: credentials/credentials_earthdata.yaml
 aws_credentials: credentials/credentials_aws.yaml
 
 # location of copernicus data space ecosystem credentials
- copernicus_credentials: credentials/credentials_copernicus.yaml
+copernicus_credentials: credentials/credentials_copernicus.yaml
 
 # directory to save scenes
 scene_folder: /data/scenes
@@ -119,8 +119,14 @@ dem_type: glo_30
 # Note - These must be available locally
 apply_ETAD : False
 
+# number of gdal threads to process the ETAD file with
+gdal_threads : 4
+
 # Locally accessible folder containing ETAD files
 ETAD_folder : /data/ETAD
+
+# overwrite the dem if it already exists
+overwrite_dem : True
 
 # add a prefix to the scene in the s3 bucket
 # mostly for testing, leave blank to exclude

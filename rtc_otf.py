@@ -7,12 +7,8 @@ import zipfile
 from shapely.geometry import Polygon, box
 import rasterio
 from dem_stitcher import stitch_dem
-from utils import (upload_file, 
-                   find_files, 
-                   expand_raster_with_bounds, 
-                   save_tif_as_image,
-                   transform_polygon
-                   )
+from utils import *
+from etad import *
 import time
 import shutil
 from pyroSAR.snap import geocode
@@ -132,14 +128,37 @@ if __name__ == "__main__":
         SCENE_NAME = asf_results[0].__dict__['umm']['GranuleUR'].split('-')[0]
         scene_zip = os.path.join(otf_cfg['scene_folder'], SCENE_NAME + '.zip')
         asf_result.download(path=otf_cfg['scene_folder'], session=session)
+        applied_scene_file = scene_zip
 
-        # unzip scene
+        # unzip scene if specified or ETAD is to be applied
         SAFE_PATH = scene_zip.replace(".zip",".SAFE")
-        if otf_cfg['unzip_scene']: 
+        if otf_cfg['unzip_scene'] or otf_cfg['apply_ETAD']: 
             logging.info(f'unzipping scene to {SAFE_PATH}')     
             with zipfile.ZipFile(scene_zip, 'r') as zip_ref:
                 zip_ref.extractall(otf_cfg['scene_folder'])
+            applied_scene_file = SAFE_PATH
 
+        # apply the ETAD corrections to the slc
+        if otf_cfg['apply_ETAD']:
+            logging.info('Applying ETAD corrections')
+            logging.info(f'loading copernicus credentials from: {otf_cfg["copernicus_credentials"]}')
+            with open(otf_cfg['copernicus_credentials'], "r", encoding='utf8') as f:
+                copernicus_cfg = yaml.safe_load(f.read())
+                copernicus_uid = copernicus_cfg['login']
+                copernicus_pswd = copernicus_cfg['password']
+            etad_path = download_scene_etad(
+                SCENE_NAME, 
+                copernicus_uid, 
+                copernicus_pswd, etad_dir=otf_cfg['ETAD_folder'])
+            ETAD_SCENE_FOLDER = f'{otf_cfg['scene_folder']}_ETAD'
+            logging.info(f'making new directory for etad corrected slc : {ETAD_SCENE_FOLDER}')
+            etad_corr_scene_safe = apply_etad_correction(
+                SAFE_PATH, 
+                etad_path, 
+                out_dir=ETAD_SCENE_FOLDER,
+                nthreads=otf_cfg['gdal_threads'])
+            applied_scene_file = etad_corr_scene_safe
+        
         t1 = time.time()
         timing['Download Scene'] = t1 - t0
         
@@ -174,7 +193,7 @@ if __name__ == "__main__":
         dem_filename = SCENE_NAME + '_dem.tif'
         DEM_PATH = os.path.join(dem_dl_folder,dem_filename)
 
-        if True:
+        if otf_cfg['overwrite_dem'] or not os.path.exists(DEM_PATH):
             # get the DEM and geometry information
             dem_data, dem_meta = stitch_dem(scene_bounds_buf,
                             dem_name=otf_cfg['dem_type'],
@@ -212,7 +231,6 @@ if __name__ == "__main__":
                 logging.info(f'Replacing old DEM: {DEM_PATH}')
                 os.remove(DEM_PATH)
                 os.rename(DEM_ADJ_PATH, DEM_PATH)
-            
 
         t3 = time.time()
         timing['Download DEM'] = t3 - t2
@@ -248,9 +266,9 @@ if __name__ == "__main__":
         if otf_cfg['snap_path'] not in os.environ['PATH']:
             os.environ['PATH'] = os.environ['PATH'] + ':' + otf_cfg['snap_path']
 
-        logging.info(scene_zip)
+        logging.info(f'Performing RTC on file : {applied_scene_file}')
         logging.getLogger().setLevel(logging.DEBUG)
-        scene_workflow = geocode(infile=scene_zip,
+        scene_workflow = geocode(infile=applied_scene_file,
             outdir=SCENE_OUT_FOLDER,
             allow_RES_OSV=True,
             externalDEMFile=DEM_PATH,
@@ -287,6 +305,7 @@ if __name__ == "__main__":
                 IMG_PATH = str(RTC_TIF_PATH.replace('.tif','.png'))
                 success['pyrosar-rtc'].append(RTC_TIF_PATH)
                 logging.info(f'RTC Backscatter successfully made : {RTC_TIF_PATH}')
+                save_tif_as_image(RTC_TIF_PATH, IMG_PATH, downscale_factor=6)
         
         # look through nested folder if tif not found, find .img
         RTC_SUB_FOLDER = os.path.join(SCENE_OUT_FOLDER,xml_filename.replace('_proc.xml',''))
@@ -298,12 +317,10 @@ if __name__ == "__main__":
                     IMG_PATH = str(RTC_TIF_PATH.replace('.tif','.png'))
                     success['pyrosar-rtc'].append(RTC_TIF_PATH)
                     logging.info(f'RTC Backscatter successfully made : {RTC_TIF_PATH}')
+                    save_tif_as_image(RTC_TIF_PATH, IMG_PATH, downscale_factor=6)
 
         t4 = time.time()
         timing['RTC Processing'] = t4 - t3
-
-        # make a thumbnail image to upload
-        save_tif_as_image(RTC_TIF_PATH, IMG_PATH, downscale_factor=6)
 
         if otf_cfg['push_to_s3']:
             logging.info(f'PROCESS 3: Push results to S3 bucket')
@@ -345,9 +362,10 @@ if __name__ == "__main__":
         if otf_cfg['delete_local_files']:
             logging.info(f'PROCESS 4: Clear files locally')
             #clear downloads
-            for file_ in [scene_zip,
-                        DEM_PATH
-                        ]:
+            clear_files = [scene_zip, DEM_PATH]
+            if applied_scene_file not in clear_files:
+                clear_files.append(applied_scene_file)
+            for file_ in clear_files:
                 logging.info(f'Deleteing {file_}')
                 os.remove(file_)
             if os.path.exists(SAFE_PATH):
