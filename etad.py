@@ -15,7 +15,7 @@ from s1etad_tools.cli.slc_correct import s1etad_slc_correct_main
 
 logger = logging.getLogger(__name__)
 
-def download_scene_etad(scene: str, username: str, password: str, etad_dir: str = ''):
+def download_scene_etad(scene: str, username: str, password: str, etad_dir: str = '', unzip=False):
     """search and download an ETAD product for a corresponding scene. 
         see - https://documentation.dataspace.copernicus.eu/APIs/OData.html
 
@@ -67,7 +67,15 @@ def download_scene_etad(scene: str, username: str, password: str, etad_dir: str 
             if chunk:
                 file.write(chunk)
 
-    return etad_path
+    if unzip:
+        etad_safe = etad_path.replace('.zip', '')
+        logging.info(f'Unzipping to : {etad_safe}')
+        if not os.path.isdir(etad_safe):
+            archive = zipfile.ZipFile(etad_path, 'r')
+            archive.extractall(etad_dir)
+            archive.close()
+
+    return etad_path if not unzip else etad_safe
 
 
 def find_etad_file(scene, ETAD_dir):
