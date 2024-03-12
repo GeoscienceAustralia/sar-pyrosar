@@ -152,12 +152,12 @@ if __name__ == "__main__":
                 copernicus_pswd, etad_dir=otf_cfg['ETAD_folder'])
             ETAD_SCENE_FOLDER = f'{otf_cfg['scene_folder']}_ETAD'
             logging.info(f'making new directory for etad corrected slc : {ETAD_SCENE_FOLDER}')
-            etad_corr_scene_safe = apply_etad_correction(
+            ETAD_SAFE_PATH = apply_etad_correction(
                 SAFE_PATH, 
                 etad_path, 
                 out_dir=ETAD_SCENE_FOLDER,
                 nthreads=otf_cfg['gdal_threads'])
-            applied_scene_file = etad_corr_scene_safe
+            applied_scene_file = ETAD_SAFE_PATH
         
         t1 = time.time()
         timing['Download Scene'] = t1 - t0
@@ -363,14 +363,15 @@ if __name__ == "__main__":
             logging.info(f'PROCESS 4: Clear files locally')
             #clear downloads
             clear_files = [scene_zip, DEM_PATH]
-            if applied_scene_file not in clear_files:
-                clear_files.append(applied_scene_file)
             for file_ in clear_files:
                 logging.info(f'Deleteing {file_}')
                 os.remove(file_)
             if os.path.exists(SAFE_PATH):
                 logging.info(f'Clearing SAFE directory: {SAFE_PATH}')
                 shutil.rmtree(SAFE_PATH)
+            if otf_cfg['apply_ETAD']:
+                logging.info(f'Clearing SAFE directory: {ETAD_SAFE_PATH}')
+                shutil.rmtree(ETAD_SAFE_PATH)
             logging.info(f'Clearing directory: {SCENE_OUT_FOLDER}')
             try:
                 # pyrosar downloads orbit files to current directory, find and delete
