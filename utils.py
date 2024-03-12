@@ -130,7 +130,18 @@ def expand_raster_with_bounds(input_raster, output_raster, old_bounds, new_bound
         dst_path=output_raster)
     os.remove(tmp)
 
-def normalise_bands(image, n_bands, p_min=5, p_max=95):
+def normalise_bands(image: np.array, n_bands: int, p_min: int = 5, p_max: int = 95):
+    """Normalise the bands between the specified percentiles
+
+    Args:
+        image (np.array): image to be normalised
+        n_bands (int): The number of bands
+        p_min (int, optional): Min percentile. Defaults to 5.
+        p_max (int, optional): Max percentile. Defaults to 95.
+
+    Returns:
+        np.array: normalised array
+    """
     norm = []
     for c in range(0,n_bands):
         band = image[c,:, :].copy()
@@ -142,7 +153,14 @@ def normalise_bands(image, n_bands, p_min=5, p_max=95):
         norm.append(band)
     return np.array(norm) # c,h,w in blue, green, red    
 
-def save_tif_as_image(tif_path, img_path, downscale_factor=5):
+def save_tif_as_image(tif_path: str, img_path: str, downscale_factor: int =5):
+    """ save a specified tif as an image
+
+    Args:
+        tif_path (str): path to the tif
+        img_path (str): save path of the image. e.g. img.jpeg
+        downscale_factor (int, optional): factor to downscale the image. Defaults to 5.
+    """
     logging.info(f'saving tif as image : {tif_path}')
     with rasterio.open(tif_path) as src:
         X = src.read()
