@@ -178,8 +178,6 @@ if __name__ == "__main__":
         scene_bounds = scene_poly.bounds 
         scene_bounds_buf = scene_poly.buffer(buffer).bounds #buffered
         logging.info(f'Scene bounds : {scene_bounds}')
-        logging.info(f'Downloding DEM for  bounds : {scene_bounds_buf}')
-        logging.info(f'type of DEM being downloaded : {otf_cfg["dem_type"]}')
 
         # transform the scene geometries to 3031
         scene_poly_3031 = transform_polygon(4326, 3031, scene_poly)
@@ -187,13 +185,25 @@ if __name__ == "__main__":
         scene_bounds_3031 = transform_polygon(4326, 3031, box(*scene_bounds))
         scene_bounds_buf_3031 = transform_polygon(4326, 3031, box(*scene_bounds_buf))
 
-        # make folders and set filenames
-        dem_dl_folder = os.path.join(otf_cfg['dem_folder'],otf_cfg['dem_type'])
-        os.makedirs(dem_dl_folder, exist_ok=True)
-        dem_filename = SCENE_NAME + '_dem.tif'
-        DEM_PATH = os.path.join(dem_dl_folder,dem_filename)
+        if otf_cfg['dem_path'] is not None:
+            # set the dem to be the one specified if supplied
+            logging.info(f'using DEM path specified : {otf_cfg["dem_path"]}')
+            if not os.path.exists(otf_cfg['dem_path']):
+                raise FileExistsError(f'{otf_cfg['dem_path']} c')
+            else:
+                DEM_PATH = otf_cfg['dem_path']
+                dem_filename = os.path.basename(DEM_PATH)
 
-        if otf_cfg['overwrite_dem'] or not os.path.exists(DEM_PATH):
+        if (otf_cfg['overwrite_dem']) or (not os.path.exists(DEM_PATH)) or (otf_cfg['dem_path'] is None):
+
+            # make folders and set filenames
+            dem_dl_folder = os.path.join(otf_cfg['dem_folder'],otf_cfg['dem_type'])
+            os.makedirs(dem_dl_folder, exist_ok=True)
+            dem_filename = SCENE_NAME + '_dem.tif'
+            DEM_PATH = os.path.join(dem_dl_folder,dem_filename)
+            
+            logging.info(f'Downloding DEM for  bounds : {scene_bounds_buf}')
+            logging.info(f'type of DEM being downloaded : {otf_cfg["dem_type"]}')
             # get the DEM and geometry information
             dem_data, dem_meta = stitch_dem(scene_bounds_buf,
                             dem_name=otf_cfg['dem_type'],
