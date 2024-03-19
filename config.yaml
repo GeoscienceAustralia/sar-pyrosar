@@ -46,7 +46,7 @@ scenes: [
         # 'S1A_IW_SLC__1SSH_20240106T083314_20240106T083342_051983_064812_8D7E', # Done 10m
         # 'S1A_IW_SLC__1SSV_20240118T083314_20240118T083341_052158_064E01_F2FB', # Done 10m
         # 'S1A_IW_SLC__1SSH_20240130T083313_20240130T083341_052333_0653F0_B544', # Done 10m
-        # Australia - QLD Forest time series (sigma0) 
+        # Australia - QLD Forest time series (sigma0) (147.533333 -25.533333)
         # 'S1A_IW_SLC__1SDV_20220109T084205_20220109T084232_041381_04EB86_4CA4', # Done 20m
         # 'S1A_IW_SLC__1SDV_20220214T084204_20220214T084231_041906_04FD5B_3E6A', # Done 20m
         # 'S1A_IW_SLC__1SDV_20220322T084204_20220322T084231_042431_050F45_D995', # Done 20m
@@ -59,7 +59,7 @@ scenes: [
         # 'S1A_IW_SLC__1SDV_20221024T084214_20221024T084241_045581_057328_A643',  # Done 20m
         # 'S1A_IW_SLC__1SDV_20221129T084213_20221129T084240_046106_0584E7_6C64', # Done 20m
         # 'S1A_IW_SLC__1SDV_20221223T084212_20221223T084238_046456_0590D9_7BFF', # Done 20m
-        # Queensland - Rainforest timeseries 
+        # Queensland - Rainforest timeseries (152.604 -26.637)
         # 'S1A_IW_SLC__1SDV_20220106T191355_20220106T191422_041344_04EA48_E185', # Done 20m
         # 'S1A_IW_SLC__1SDV_20220130T191354_20220130T191421_041694_04F5F9_1AFD', # Done 20m
         # 'S1A_IW_SLC__1SDV_20220211T191354_20220211T191421_041869_04FC03_7559', # Done 20m
@@ -115,6 +115,10 @@ dem_folder: /data/dem
 # list of valid dems in https://pypi.org/project/dem-stitcher/
 dem_type: glo_30
 
+# File path to a DEM to use (skip download process and use DEM specified)
+# leave empty to ignore
+dem_path:
+
 # Apply ETAD corrections to the slc
 # Note - These must be available locally
 apply_ETAD : False
@@ -126,7 +130,7 @@ gdal_threads : 4
 ETAD_folder : /data/ETAD
 
 # overwrite the dem if it already exists
-overwrite_dem : True
+overwrite_dem : False
 
 # add a prefix to the scene in the s3 bucket
 # mostly for testing, leave blank to exclude
@@ -158,7 +162,7 @@ pyrosar_spacing: 10
 pyrosar_scaling: linear
 
 # pyrosar settings - reference area
-# e.g. gamma0, sigma0, beta0
+# e.g. gamma0, sigma0, beta0 or ['gamma0','sigma0']
 pyrosar_refarea: ['gamma0','sigma0']
 
 # pyrosar settings 
