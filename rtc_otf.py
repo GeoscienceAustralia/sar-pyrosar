@@ -172,7 +172,7 @@ if __name__ == "__main__":
         points = (asf_result.__dict__['umm']['SpatialExtent']['HorizontalSpatialDomain']
                 ['Geometry']['GPolygons'][0]['Boundary']['Points'])
         points = [(p['Longitude'],p['Latitude']) for p in points]
-        buffer = 0.5
+        buffer = 0.3
         scene_poly = Polygon(points)
         scene_poly_buf = scene_poly.buffer(buffer)
         scene_bounds = scene_poly.bounds 
@@ -193,21 +193,21 @@ if __name__ == "__main__":
             else:
                 DEM_PATH = otf_cfg['dem_path']
                 dem_filename = os.path.basename(DEM_PATH)
-
-        if (otf_cfg['overwrite_dem']) or (not os.path.exists(DEM_PATH)) or (otf_cfg['dem_path'] is None):
-
+        else:
             # make folders and set filenames
             dem_dl_folder = os.path.join(otf_cfg['dem_folder'],otf_cfg['dem_type'])
             os.makedirs(dem_dl_folder, exist_ok=True)
             dem_filename = SCENE_NAME + '_dem.tif'
             DEM_PATH = os.path.join(dem_dl_folder,dem_filename)
+
+        if (otf_cfg['overwrite_dem']) or (not os.path.exists(DEM_PATH)) or (otf_cfg['dem_path'] is None):
             
             logging.info(f'Downloding DEM for  bounds : {scene_bounds_buf}')
             logging.info(f'type of DEM being downloaded : {otf_cfg["dem_type"]}')
             # get the DEM and geometry information
             dem_data, dem_meta = stitch_dem(scene_bounds_buf,
                             dem_name=otf_cfg['dem_type'],
-                            dst_ellipsoidal_height=False,
+                            dst_ellipsoidal_height=True,
                             dst_area_or_point='Point')
             
             # save with rasterio
