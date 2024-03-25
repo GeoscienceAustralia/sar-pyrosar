@@ -11,6 +11,8 @@ On the fly production of Sentinel-1 RTC Backscatter using pyroSAR (download -> p
         - Add these to both *credentials_earthdata.yaml* and *.netrc* file
     - Copernicus Dataspace - https://dataspace.copernicus.eu/
         - Add these to *credentials_copernicus.yaml*
+    - AWS credentials
+        - Add these to *credentials_aws.yaml* to enable DEM download and upload to desired destination
 - run the setup script to build the docker container
 ```bash
 sh setup.sh
