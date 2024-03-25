@@ -22,7 +22,10 @@ sh setup.sh
 ```bash
 sh run_process.sh
 ```
-- WARNING - current setup mounts the /data folder inside the container. This assumes *all* of the paths where data will be accessed are in the /data folder (e.g. /data/scenes, /data/pyrosar ...). If data is stored across multiple folders without a common root folder (such as /data), the run_process.sh script will need to be changed to mount these folders to /data within the container. 
+
+# Mount the correct directories in docker
+
+WARNING - current setup mounts the /data folder inside the container. This assumes *all* of the paths where data will be accessed are in the /data folder (e.g. /data/scenes, /data/pyrosar ...). If data is stored across multiple folders without a common root folder (such as /data), the run_process.sh script will need to be changed to mount these folders to /data within the container. The workflow also mounts the local aws files in the container. 
 
 For example, if scenes are downloaded to /my/path/scenes, and other folders are all in /data the run_process.sh script will look like:
 ```bash
