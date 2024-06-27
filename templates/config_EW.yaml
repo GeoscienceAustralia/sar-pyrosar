@@ -25,7 +25,7 @@ pyrosar_output_folder: /data/pyroSAR/outdir
 snap_path: /home/ec2-user/SNAP9/bin #'/Applications/snap/bin' 
 
 # location of earthdata credentials to download data.
-earthdata_credentials: credentials_earthdata.txt
+earthdata_credentials: credentials/credentials_earthdata.yaml
 
 # location of aws credentials
 aws_credentials: credentials/credentials_aws.yaml
