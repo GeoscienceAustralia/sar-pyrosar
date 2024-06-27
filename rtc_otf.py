@@ -150,7 +150,7 @@ if __name__ == "__main__":
                 SCENE_NAME, 
                 copernicus_uid, 
                 copernicus_pswd, etad_dir=otf_cfg['ETAD_folder'])
-            ETAD_SCENE_FOLDER = f'{otf_cfg['scene_folder']}_ETAD'
+            ETAD_SCENE_FOLDER = f'{otf_cfg["scene_folder"]}_ETAD'
             logging.info(f'making new directory for etad corrected slc : {ETAD_SCENE_FOLDER}')
             ETAD_SAFE_PATH = apply_etad_correction(
                 SAFE_PATH, 
@@ -189,7 +189,7 @@ if __name__ == "__main__":
             # set the dem to be the one specified if supplied
             logging.info(f'using DEM path specified : {otf_cfg["dem_path"]}')
             if not os.path.exists(otf_cfg['dem_path']):
-                raise FileExistsError(f'{otf_cfg['dem_path']} c')
+                raise FileExistsError(f'{otf_cfg["dem_path"]} c')
             else:
                 DEM_PATH = otf_cfg['dem_path']
                 dem_filename = os.path.basename(DEM_PATH)
