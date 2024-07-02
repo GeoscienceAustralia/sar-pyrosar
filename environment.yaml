@@ -4,7 +4,7 @@ channels:
   - defaults
   - s1-etad
 dependencies:
-  - python>=3.8
+  - python=3.10
   - python-dateutil
   - gdal>=3.5.0
   - click>=7.1.0
@@ -13,11 +13,11 @@ dependencies:
   - pystac>=1.8.0
   - pystac-client
   - scipy
-  - pyroSAR>=0.22.1
+  - pyroSAR>=0.23.0
   - spatialist>=0.12.0
   - s1etad>=0.5.3
   - s1etad_tools>=0.8.1
-  - numpy
+  - numpy==1.26.4
   - asf_search
   - pyproj
   - fiona

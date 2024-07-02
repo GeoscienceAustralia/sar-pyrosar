@@ -6,7 +6,9 @@ scenes: [
         # S1A_EW_GRDM_1SDH_20190924T112554_20190924T112659_029162_034FAB_41A7,
         # S1B_EW_GRDM_1SDH_20210221T234712_20210221T234816_025711_0310AD_3C16,
         # S1B_EW_GRDM_1SDH_20210304T000326_20210304T000430_025857_031578_789C,
-        S1A_EW_GRDM_1SDH_20220117T122010_20220117T122115_041500_04EF6B_6437
+        # consecutive casey station
+        S1A_EW_GRDM_1SDH_20220110T122825_20220110T122929_041398_04EC1E_1C0B,
+        S1A_EW_GRDM_1SDH_20220117T122010_20220117T122115_041500_04EF6B_6437,
         ]
 
 
@@ -75,7 +77,7 @@ s3_bucket_folder: sar-software-comparison-ew-40m
 s3_bucket: deant-data-public-dev
 
 # whether to push to s3
-push_to_s3: False
+push_to_s3: True
 
 # whether to push the DEM to the S3 bucket
 upload_dem: True
