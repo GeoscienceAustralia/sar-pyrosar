@@ -1,0 +1,108 @@
+# list of scenes to download and process
+scenes: [
+        # S1A_EW_GRDM_1SDH_20230118T112609_20230118T112713_046837_059DB3_9C85,
+        # S1A_EW_GRDM_1SDH_20220225T174025_20220225T174129_042072_050315_7C35,
+        # S1A_EW_GRDM_1SDH_20221023T174035_20221023T174139_045572_0572D2_CD12,
+        # S1A_EW_GRDM_1SDH_20190924T112554_20190924T112659_029162_034FAB_41A7,
+        # S1B_EW_GRDM_1SDH_20210221T234712_20210221T234816_025711_0310AD_3C16,
+        # S1B_EW_GRDM_1SDH_20210304T000326_20210304T000430_025857_031578_789C,
+        # consecutive casey station
+        S1A_EW_GRDM_1SDH_20220110T122825_20220110T122929_041398_04EC1E_1C0B,
+        S1A_EW_GRDM_1SDH_20220117T122010_20220117T122115_041500_04EF6B_6437,
+        ]
+
+
+# the name of the software. This will form part of the path
+# where the products are writte
+software : pyrosar
+
+# we will mount this folder in the docker container so all data can be accessed
+# this folder should contain all the downloaded scenes, dems, etc specified below
+data_folder: '/data'
+
+#save directory for final opera products
+pyrosar_output_folder: /data/pyroSAR/outdir
+
+# location of SNAP installation
+snap_path: /home/ec2-user/SNAP9/bin #'/Applications/snap/bin' 
+
+# location of earthdata credentials to download data.
+earthdata_credentials: credentials/credentials_earthdata.yaml
+
+# location of aws credentials
+aws_credentials: credentials/credentials_aws.yaml
+
+# location of copernicus data space ecosystem credentials
+copernicus_credentials: credentials/credentials_copernicus.yaml
+
+# directory to save scenes
+scene_folder: /data/scenes
+
+# whether to unzip the safe file
+unzip_scene: False
+
+# directory where DEM will be saved - a sub folder is made for each DEM type
+dem_folder: /data/dem
+
+# type of dem to download for each scene
+# list of valid dems in https://pypi.org/project/dem-stitcher/
+dem_type: glo_30
+
+# File path to a DEM to use (skip download process and use DEM specified)
+# leave empty to ignore
+dem_path:
+
+# Apply ETAD corrections to the slc
+# Note - These must be available locally
+apply_ETAD : False
+
+# number of gdal threads to process the ETAD file with
+gdal_threads : 4
+
+# Locally accessible folder containing ETAD files
+ETAD_folder : /data/ETAD
+
+# overwrite the dem if it already exists
+overwrite_dem : True
+
+# add a prefix to the scene in the s3 bucket
+# mostly for testing, leave blank to exclude
+scene_prefix: 
+
+# specify the folder in the s3 bucket
+s3_bucket_folder: sar-software-comparison-ew-40m
+
+# s3 bucket to push the results
+# formatting will be {s3_bucket}/{opera-rtc}/{scene}/{product_id}
+s3_bucket: deant-data-public-dev
+
+# whether to push to s3
+push_to_s3: True
+
+# whether to push the DEM to the S3 bucket
+upload_dem: True
+
+# delete files after run
+delete_local_files: True
+
+#pyrosar settings - pixel size
+pyrosar_spacing: 40
+
+#pyrosar settings - scale of final product
+# e.g. linear, db
+pyrosar_scaling: linear
+
+# pyrosar settings - reference area
+# e.g. gamma0, sigma0, beta0 or ['gamma0','sigma0']
+pyrosar_refarea: ['gamma0','sigma0']
+
+# pyrosar settings 
+# A target geographic reference system in WKT, EPSG, PROJ4 or OPENGIS format.
+# See function :func:`spatialist.auxil.crsConvert()` for details.
+# e.g. 4326, 3031
+# by default set the crs based on the location of the scene on
+# the sentinel-2 MGRS grid
+#pyrosar_t_srs: default
+pyrosar_t_srs: 3031
+
+
