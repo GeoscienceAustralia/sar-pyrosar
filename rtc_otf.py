@@ -200,7 +200,7 @@ if __name__ == "__main__":
             dem_filename = SCENE_NAME + '_dem.tif'
             DEM_PATH = os.path.join(dem_dl_folder,dem_filename)
 
-        if (otf_cfg['overwrite_dem']) or (not os.path.exists(DEM_PATH)) or (otf_cfg['dem_path'] is None):
+        if (otf_cfg['overwrite_dem']) or (not os.path.exists(DEM_PATH)):
             
             logging.info(f'Downloding DEM for  bounds : {scene_bounds_buf}')
             logging.info(f'type of DEM being downloaded : {otf_cfg["dem_type"]}')
@@ -290,7 +290,8 @@ if __name__ == "__main__":
             t_srs=trg_crs,
             returnWF=True,
             clean_edges=True,
-            export_extra=["localIncidenceAngle","DEM","layoverShadowMask","scatteringArea","gammaSigmaRatio"],
+            terrainFlattening=otf_cfg['pyrosar_terrainFlattening'],
+            export_extra=otf_cfg['pyrosar_export_extra'],
             #gpt_args=otf_cfg['gpt_args'],
             )
         logging.getLogger().setLevel(logging.INFO)
