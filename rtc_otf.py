@@ -172,18 +172,26 @@ if __name__ == "__main__":
         points = (asf_result.__dict__['umm']['SpatialExtent']['HorizontalSpatialDomain']
                 ['Geometry']['GPolygons'][0]['Boundary']['Points'])
         points = [(p['Longitude'],p['Latitude']) for p in points]
-        buffer = 0.3
         scene_poly = Polygon(points)
-        scene_poly_buf = scene_poly.buffer(buffer)
         scene_bounds = scene_poly.bounds 
-        scene_bounds_buf = scene_poly.buffer(buffer).bounds #buffered
         logging.info(f'Scene bounds : {scene_bounds}')
 
-        # transform the scene geometries to 3031
-        scene_poly_3031 = transform_polygon(4326, 3031, scene_poly)
-        scene_poly_buf_3031 = transform_polygon(4326, 3031, scene_poly_buf)
-        scene_bounds_3031 = transform_polygon(4326, 3031, box(*scene_bounds))
-        scene_bounds_buf_3031 = transform_polygon(4326, 3031, box(*scene_bounds_buf))
+        # if we are at high latitudes we need to correct the bounds due to the skewed box shape
+        if (scene_bounds[1] < -50) or (scene_bounds[3] < -50):
+            # Southern Hemisphere
+            logging.info(f'Adjusting scene bounds due to warping at high latitude')
+            scene_poly = adjust_scene_poly_at_extreme_lat(scene_bounds, 4326, 3031)
+            scene_bounds = scene_poly.bounds 
+            logging.info(f'Adjusted scene bounds : {scene_bounds}')
+        if (scene_bounds[1] > 50) or (scene_bounds[3] > 50):
+            # Northern Hemisphere
+            logging.info(f'Adjusting scene bounds due to warping at high latitude')
+            scene_poly = adjust_scene_poly_at_extreme_lat(scene_bounds, 4326, 3995)
+            scene_bounds = scene_poly.bounds 
+            logging.info(f'Adjusted scene bounds : {scene_bounds}')
+
+        buffer = 0.1
+        scene_bounds_buf = scene_poly.buffer(buffer).bounds #buffered
 
         if otf_cfg['dem_path'] is not None:
             # set the dem to be the one specified if supplied
@@ -193,54 +201,35 @@ if __name__ == "__main__":
             else:
                 DEM_PATH = otf_cfg['dem_path']
                 dem_filename = os.path.basename(DEM_PATH)
+                otf_cfg['dem_folder'] = os.path.dirname(DEM_PATH) # set the dem folder
+                otf_cfg['overwrite_dem'] = False # do not overwrite dem
         else:
             # make folders and set filenames
             dem_dl_folder = os.path.join(otf_cfg['dem_folder'],otf_cfg['dem_type'])
             os.makedirs(dem_dl_folder, exist_ok=True)
             dem_filename = SCENE_NAME + '_dem.tif'
             DEM_PATH = os.path.join(dem_dl_folder,dem_filename)
-
-        if (otf_cfg['overwrite_dem']) or (not os.path.exists(DEM_PATH)):
-            
+        
+        if (otf_cfg['overwrite_dem']) or (not os.path.exists(DEM_PATH)) or (otf_cfg['dem_path'] is None):
             logging.info(f'Downloding DEM for  bounds : {scene_bounds_buf}')
             logging.info(f'type of DEM being downloaded : {otf_cfg["dem_type"]}')
             # get the DEM and geometry information
             dem_data, dem_meta = stitch_dem(scene_bounds_buf,
                             dem_name=otf_cfg['dem_type'],
                             dst_ellipsoidal_height=True,
-                            dst_area_or_point='Point')
+                            dst_area_or_point='Point',
+                            merge_nodata_value=0,
+                            fill_to_bounds=True,
+                            )
             
             # save with rasterio
             logging.info(f'saving dem to {DEM_PATH}')
-            # pyroSAR cant handle a nodata value of np.nan
-            # we therefore set this to be -9999
-            if np.isnan(dem_meta['nodata']):
-                logging.info(f'replace dem nodata from np.nan to -9999')
-                replace_nan = True
-                dem_meta['nodata'] = -9999
             with rasterio.open(DEM_PATH, 'w', **dem_meta) as ds:
-                logging.info(f'DEM crs : {ds.meta["crs"]}')
-                if replace_nan:
-                    dem_data[dem_data==np.nan] = -9999
-                    dem_data[dem_data=='nan'] = -9999
                 ds.write(dem_data, 1)
                 ds.update_tags(AREA_OR_POINT='Point')
             del dem_data
-
-            # get the bounds of the downloaded DEM
-            # the full area requested may not be covered
-            dem_bounds = rasterio.transform.array_bounds(
-                dem_meta['height'], dem_meta['width'], dem_meta['transform'])
-            logging.info(f'Downloaded DEM bounds: {dem_bounds}')
-            # Pad the DEM if it does not cover the full area od the scene
-            if not box(*dem_bounds).contains_properly(box(*scene_bounds_buf)):
-                logging.warning('Downloaded DEM does not cover scene bounds, filling with nodata')
-                logging.info('Expanding the bounds of the downloaded DEM')
-                DEM_ADJ_PATH = DEM_PATH.replace('.tif','_adj.tif') #adjusted DEM path
-                expand_raster_with_bounds(DEM_PATH, DEM_ADJ_PATH, dem_bounds, scene_bounds_buf)
-                logging.info(f'Replacing old DEM: {DEM_PATH}')
-                os.remove(DEM_PATH)
-                os.rename(DEM_ADJ_PATH, DEM_PATH)
+        else:
+            logging.info(f'Using existing DEM : {DEM_PATH}')
 
         t3 = time.time()
         timing['Download DEM'] = t3 - t2

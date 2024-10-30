@@ -140,8 +140,8 @@ overwrite_dem : False
 scene_prefix: 
 
 # specify the folder in the s3 bucket
-# s3_bucket_folder: sar-software-comparison-30m
-s3_bucket_folder: sar-software-comparison-20m
+# sar-software-comparison-Xm, qld-rainforest-timeseries-Xm-2022
+s3_bucket_folder: sar-comparison-study/s1-rtc-scenes/sar-software-comparison-20m
 
 # s3 bucket to push the results
 # note, output crs (trg_crs) is set in opera config
@@ -181,7 +181,7 @@ pyrosar_t_srs: 3031
 pyrosar_terrainFlattening : True 
 
 # remve scattering area if no rtc
-pyrosar_export_extra: ['localIncidenceAngle','DEM','layoverShadowMask','scatteringArea','gammaSigmaRatio']
+pyrosar_export_extra: ['incidenceAngleFromEllipsoid','localIncidenceAngle','DEM','layoverShadowMask','scatteringArea','gammaSigmaRatio']
 # pyrosar_export_extra: ['DEM']
 
 # a list of arguments to pass to the snap gpt interperator
