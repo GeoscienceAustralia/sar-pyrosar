@@ -8,7 +8,7 @@ scenes: [
         # 'S1B_IW_SLC__1SSH_20190223T222639_20190223T222706_015079_01C2E9_1D63', 
         # 'S1A_IW_SLC__1SSH_20190605T222724_20190605T222751_027550_031BE1_AD3A', 
         # # Antarctica - Law Dome (-66.163448 113.66396)
-        'S1B_IW_SLC__1SSH_20211204T123606_20211204T123635_029875_039105_E7EC', 
+        # 'S1B_IW_SLC__1SSH_20211204T123606_20211204T123635_029875_039105_E7EC', 
         # 'S1A_IW_SLC__1SSH_20211210T123647_20211210T123716_040946_04DCF0_9FBA', 
         # 'S1B_IW_SLC__1SSH_20211216T123605_20211216T123634_030050_03968D_9501', 
         # # Antarctica - Ross Island (-77.7018, 166.7541)
@@ -79,6 +79,22 @@ scenes: [
         # tets sites pat wongpan
         # S1A_IW_SLC__1SSH_20240301T212157_20240301T212223_052793_066382_8D95,
         # S1A_IW_SLC__1SSH_20240302T034858_20240302T034926_052797_066396_0B8A,
+        # daintree rainforest
+        # 'S1A_IW_SLC__1SDV_20240719T195219_20240719T195246_054834_06AD81_2850', # Done 20m
+        # 'S1A_IW_SLC__1SDV_20240625T195220_20240625T195247_054484_06A15E_25DD', # Done 20m
+        # 'S1A_IW_SLC__1SDV_20240601T195221_20240601T195248_054134_06953D_BA35', # Done 20m, done etad
+        # 'S1A_IW_SLC__1SDV_20240508T195222_20240508T195249_053784_06892A_14BF', # Done 20m, done etad
+        # 'S1A_IW_SLC__1SDV_20240414T195221_20240414T195248_053434_067B76_7297', # Done 20m, done etad
+        # 'S1A_IW_SLC__1SDV_20240321T195221_20240321T195248_053084_066DEF_BB5C', # Done 20m, done etad
+        # 'S1A_IW_SLC__1SDV_20240226T195220_20240226T195247_052734_066181_BA46', # Done 20m, done etad
+        # 'S1A_IW_SLC__1SDV_20240202T195221_20240202T195248_052384_0655AE_65A0', # to do, done etad
+        # 'S1A_IW_SLC__1SDV_20240109T195221_20240109T195248_052034_0649D6_1FF6', # Done 20m, done etad
+        # 'S1A_IW_SLC__1SDV_20231216T195223_20231216T195250_051684_063DCD_4ADC', # Done 20m, done erad
+        # 'S1A_IW_SLC__1SDV_20231122T195224_20231122T195251_051334_0631B4_AC2B', # Done 20m, done etad
+        # 'S1A_IW_SLC__1SDV_20231029T195225_20231029T195251_050984_06259C_6024', # Done 20m
+        # 'S1A_IW_SLC__1SDV_20231005T195224_20231005T195251_050634_0619A2_216F', # Done 20m, done etad
+        # 'S1A_IW_SLC__1SDV_20230911T195224_20230911T195251_050284_060DB2_CC96', # Done 20m
+        #'S1A_IW_SLC__1SDV_20230818T195223_20230818T195250_049934_0601BA_AE0C', # Done 20m
         ]
 
 # the name of the software. This will form part of the path
@@ -140,8 +156,8 @@ overwrite_dem : False
 scene_prefix: 
 
 # specify the folder in the s3 bucket
-# sar-software-comparison-Xm, qld-rainforest-timeseries-Xm-2022
-s3_bucket_folder: sar-comparison-study/s1-rtc-scenes/sar-software-comparison-20m
+# sar-software-comparison-Xm, qld-rainforest-timeseries-Xm-2022 daintree-rainforest-timeseries-XXXm-2024
+s3_bucket_folder: sar-comparison-study/s1-rtc-scenes/daintree-rainforest-timeseries-20m-2024
 
 # s3 bucket to push the results
 # note, output crs (trg_crs) is set in opera config
@@ -174,7 +190,7 @@ pyrosar_refarea: ['gamma0','sigma0']
 # e.g. 4326, 3031
 # set 'default' to set the crs based on the UTM location of the scene centre
 # pyrosar_t_srs: default
-pyrosar_t_srs: 3031
+pyrosar_t_srs: default
 
 # turn off terrain flattening, e.g. testing for dem artifacts
 # default = True (i.e. we want to perform rtc)

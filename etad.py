@@ -37,7 +37,7 @@ def download_scene_etad(scene: str, username: str, password: str, etad_dir: str 
         ).json()['value']
     files = [res['Name'] for res in search_results]
     logger.info(f'ETAD files found {files}')
-    assert len(search_results) == 1, "error. more than one ETAD product found for scene"
+    assert len(search_results) == 1, f"error. {len(files)} ETAD product found. 1 required."
     prod_id = search_results[0]['Id']
     prod_name = search_results[0]['Name']
     etad_filename = prod_name + '.zip'

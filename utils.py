@@ -173,3 +173,45 @@ def save_tif_as_image(tif_path: str, img_path: str, downscale_factor: int =5):
                          dsize=(new_h, new_w), 
                          interpolation=cv2.INTER_CUBIC)
         cv2.imwrite(img_path, res)
+
+def adjust_scene_poly_at_extreme_lat(bbox, src_crs, ref_crs, delta=0.1):
+    """
+    Adjust the bounding box around a scene in src_crs (4326) due to warping at high
+    Latitudes. For example, the min and max boudning values for an antarctic scene in
+    4326 may not actually be the true min and max due to distortions at high latitudes. 
+
+    Parameters:
+    - bbox: Tuple of four coordinates (x_min, y_min, x_max, y_max).
+    - src_crs: Source EPSG. e.g. 4326
+    - ref_crs: reference crs to create the true bbox. i.e. 3031 in southern 
+                hemisphere and 3995 in northern (polar stereographic)
+    - delta: distance between generation points along the bounding box sides in
+            src_crs. e.g. 0.1 degrees in lat/lon 
+
+    Returns:
+    - A polygon bounding box expanded to the true min max
+    """
+    x_min, y_min, x_max, y_max = bbox
+    # Generate points along the top side
+    top_side = [(x, y_max) for x in list(np.arange(x_min, x_max, delta)) + [x_max]]    
+    # Generate points along the right side
+    right_side = [(x_max, y) for y in list(np.arange(y_max - delta, y_min-delta, -delta)) + [y_min]]
+    # Generate points along the bottom side
+    bottom_side = [(x, y_min) for x in list(np.arange(x_max - delta, x_min-delta, -delta)) + [x_min]]
+    list(np.arange(y_min + delta, y_max, delta)) + [y_max]
+    # Generate points along the left side
+    left_side = [(x_min, y) for y in list(np.arange(y_min + delta, y_max, delta)) + [y_max]]
+    # Combine all sides' points
+    all_points = top_side + right_side + bottom_side + left_side
+    # convert to a polygon 
+    polygon = Polygon(all_points)
+    # convert polygon to desired crs and get bounds in those coordinates
+    trans_bounds = transform_polygon(src_crs, ref_crs, polygon).bounds
+    trans_poly = Polygon(
+        [(trans_bounds[0], trans_bounds[1]), 
+         (trans_bounds[2], trans_bounds[1]), 
+         (trans_bounds[2], trans_bounds[3]), 
+         (trans_bounds[0], trans_bounds[3])]
+        )
+    corrected_poly = transform_polygon(ref_crs, src_crs, trans_poly)
+    return corrected_poly
