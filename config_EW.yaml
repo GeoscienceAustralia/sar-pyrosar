@@ -7,8 +7,8 @@ scenes: [
         # S1B_EW_GRDM_1SDH_20210221T234712_20210221T234816_025711_0310AD_3C16,
         # S1B_EW_GRDM_1SDH_20210304T000326_20210304T000430_025857_031578_789C,
         # consecutive casey station
-        S1A_EW_GRDM_1SDH_20220110T122825_20220110T122929_041398_04EC1E_1C0B,
-        S1A_EW_GRDM_1SDH_20220117T122010_20220117T122115_041500_04EF6B_6437,
+        #S1A_EW_GRDM_1SDH_20210701T150428_20210701T150533_038585_048D91_23E6,
+        S1A_EW_GRDM_1SDH_20210704T152833_20210704T152942_038629_048EE8_D41F,
         ]
 
 
@@ -63,14 +63,14 @@ gdal_threads : 4
 ETAD_folder : /data/ETAD
 
 # overwrite the dem if it already exists
-overwrite_dem : True
+overwrite_dem : False
 
 # add a prefix to the scene in the s3 bucket
 # mostly for testing, leave blank to exclude
 scene_prefix: 
 
 # specify the folder in the s3 bucket
-s3_bucket_folder: sar-software-comparison-ew-40m
+s3_bucket_folder: experimental/sar-software-comparison-ew-40m-alex-fraser
 
 # s3 bucket to push the results
 # formatting will be {s3_bucket}/{opera-rtc}/{scene}/{product_id}
@@ -104,5 +104,14 @@ pyrosar_refarea: ['gamma0','sigma0']
 # the sentinel-2 MGRS grid
 #pyrosar_t_srs: default
 pyrosar_t_srs: 3031
+
+# turn off terrain flattening, e.g. testing for dem artifacts
+# default = True (i.e. we want to perform rtc)
+pyrosar_terrainFlattening : True 
+
+# remve scattering area if no rtc
+pyrosar_export_extra: ['incidenceAngleFromEllipsoid','localIncidenceAngle','DEM','layoverShadowMask','scatteringArea','gammaSigmaRatio']
+# pyrosar_export_extra: ['DEM']
+
 
 
