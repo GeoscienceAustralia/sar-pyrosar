@@ -107,3 +107,22 @@ def save_tif_as_image(tif_path: str, img_path: str, downscale_factor: int =5):
                          dsize=(new_h, new_w), 
                          interpolation=cv2.INTER_CUBIC)
         cv2.imwrite(img_path, res)
+
+def reassign_nodata_inplace(raster_path, new_nodata):
+    temp_path = raster_path + ".tmp.tif"
+
+    with rasterio.open(raster_path) as src:
+        profile = src.profile.copy()
+        data = src.read()
+
+        # Replace old nodata values in data
+        if src.nodata is not None:
+            data = np.where(data == src.nodata, new_nodata, data)
+
+        profile.update(nodata=new_nodata)
+
+        with rasterio.open(temp_path, 'w', **profile) as dst:
+            dst.write(data)
+
+    # Replace the original file
+    os.replace(temp_path, raster_path)

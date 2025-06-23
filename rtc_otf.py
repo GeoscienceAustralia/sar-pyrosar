@@ -190,6 +190,7 @@ def run_process(config, scene):
                 download_dem_tiles=True,
                 download_geoid=True,
             )
+            reassign_nodata_inplace(DEM_PATH, new_nodata=-9999)
         else:
             logging.info(f'Using existing DEM : {DEM_PATH}')
 

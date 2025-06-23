@@ -95,6 +95,19 @@ scenes: [
         # 'S1A_IW_SLC__1SDV_20231005T195224_20231005T195251_050634_0619A2_216F', # Done 20m, done etad
         # 'S1A_IW_SLC__1SDV_20230911T195224_20230911T195251_050284_060DB2_CC96', # Done 20m
         #'S1A_IW_SLC__1SDV_20230818T195223_20230818T195250_049934_0601BA_AE0C', # Done 20m
+        # north-queensland-forest-timeseries
+        # "S1A_IW_SLC__1SDV_20240724T195934_20240724T200001_054907_06B017_8D42", # done
+        # "S1A_IW_SLC__1SDV_20240630T195935_20240630T200002_054557_06A3EC_F9FD", # done
+        # "S1A_IW_SLC__1SDV_20240525T195937_20240525T200004_054032_0691BA_3D77",
+        # "S1A_IW_SLC__1SDV_20240419T195936_20240419T200003_053507_067E60_2A4B",
+        # "S1A_IW_SLC__1SDV_20240326T195935_20240326T200002_053157_0670B3_1CFB",
+        # "S1A_IW_SLC__1SDV_20240219T195935_20240219T200002_052632_065E0C_64C0",
+        # "S1A_IW_SLC__1SDV_20240126T195935_20240126T200003_052282_065230_7F6A",
+        # "S1A_IW_SLC__1SDV_20231221T195937_20231221T200004_051757_06405B_72FF",
+        # "S1A_IW_SLC__1SDV_20231127T195938_20231127T200005_051407_063433_D47D",
+        # "S1A_IW_SLC__1SDV_20231022T195940_20231022T200007_050882_06221C_31F3",
+        "S1A_IW_SLC__1SDV_20230928T195939_20230928T200006_050532_061624_67E1",
+        # "S1A_IW_SLC__1SDV_20230823T195938_20230823T200005_050007_060437_2818" # done
         ]
 
 # the name of the software. This will form part of the path
@@ -148,7 +161,7 @@ gdal_threads : 4
 ETAD_folder : /data/ETAD
 
 # overwrite the dem if it already exists
-overwrite_dem : False
+overwrite_dem : True
 
 # add a prefix to the scene in the s3 bucket
 # mostly for testing, leave blank to exclude
@@ -156,7 +169,7 @@ scene_prefix:
 
 # specify the folder in the s3 bucket
 # sar-software-comparison-Xm, qld-rainforest-timeseries-Xm-2022 daintree-rainforest-timeseries-XXXm-2024
-s3_bucket_folder: sar-comparison-study/s1-rtc-scenes/daintree-rainforest-timeseries-20m-2024
+s3_bucket_folder: sar-comparison-study/s1-rtc-scenes/north-queensland-forest-timeseries-20m
 
 # s3 bucket to push the results
 # note, output crs (trg_crs) is set in opera config
