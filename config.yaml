@@ -98,12 +98,11 @@ scenes: [
         ]
 
 # the name of the software. This will form part of the path
-# where the products are writted
+# where the products are written
 software : pyrosar
 
-# we will mount this folder in the docker container so all data can be accessed
-# this folder should contain all the downloaded scenes, dems, etc specified below
-data_folder: '/data'
+# number of scenes to run in parallel
+n_parallel: 1
 
 #save directory for final opera products
 # a sub directory for each scene will be made
@@ -112,13 +111,13 @@ pyrosar_output_folder: /data/pyroSAR/outdir
 # location of SNAP installation
 snap_path: /home/ec2-user/SNAP9/bin #'/Applications/snap/bin' 
 
-# location of earthdata credentials to download data.
+# location of earthdata credentials to download data. Should be in .credentials folder
 earthdata_credentials: credentials/credentials_earthdata.yaml
 
-# location of aws credentials
+# location of aws credentials. Should be in .credentials folder
 aws_credentials: credentials/credentials_aws.yaml
 
-# location of copernicus data space ecosystem credentials
+# location of copernicus data space ecosystem credentials. Should be in .credentials folder
 copernicus_credentials: credentials/credentials_copernicus.yaml
 
 # directory to save scenes
@@ -134,8 +133,8 @@ dem_folder: /data/dem
 # list of valid dems in https://pypi.org/project/dem-stitcher/
 dem_type: glo_30
 
-# File path to a DEM to use (skip download process and use DEM specified)
-# leave empty to ignore
+# File path to a an existing DEM file
+# leave empty to download a new one in the process
 dem_path:
 
 # Apply ETAD corrections to the slc

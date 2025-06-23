@@ -22,27 +22,23 @@ RUN /tmp/update_snap.sh
 
 FROM snap as s1_nrb
 
-# install S1_NRB
-SHELL [ "/bin/bash", "--login", "-c" ]
+# setup conda environment
+COPY environment.yaml /tmp/environment.yaml
+RUN conda update -n base -c defaults conda -y \
+ && conda env create --file /tmp/environment.yaml
 
-COPY environment.yaml environment.yaml
-RUN conda update conda
-RUN conda env create --yes --file environment.yaml
+# ensure environment variables
+ENV PATH /opt/conda/envs/nrb_env/bin:$PATH
+ENV PROJ_LIB /opt/conda/envs/nrb_env/share/proj
 
-RUN echo "export PROJ_LIB=/usr/local/envs/nrb_env/share/proj" >> ~/.bashrc
-
-RUN echo "conda init bash" >> ~/.bashrc
-RUN source ~/.bashrc
-RUN echo "conda activate nrb_env" >> ~/.bashrc
-
+# install project code
 WORKDIR /app/
 COPY . /app/
 
-# install pyrosar 0.23.0 from source
-RUN source ~/.bashrc \
- && python -m pip install -r requirements.txt \
- && python -m pip uninstall pyrosar -y \
- && python -m pip install git+https://github.com/johntruckenbrodt/pyroSAR.git@v0.23.0
+# install requirements and pyrosar in the conda env
+RUN conda run -n nrb_env pip install -r requirements.txt \
+ && conda run -n nrb_env pip uninstall -y pyrosar \
+ && conda run -n nrb_env pip install git+https://github.com/johntruckenbrodt/pyroSAR.git@v0.23.0
 
-RUN chmod +x docker/entrypoint.sh
-ENTRYPOINT ["/app/docker/entrypoint.sh"]
+ENTRYPOINT ["conda", "run", "--no-capture-output", "-n", "nrb_env"]
+CMD []

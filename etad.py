@@ -37,7 +37,8 @@ def download_scene_etad(scene: str, username: str, password: str, etad_dir: str 
         ).json()['value']
     files = [res['Name'] for res in search_results]
     logger.info(f'ETAD files found {files}')
-    assert len(search_results) == 1, f"error. {len(files)} ETAD product found. 1 required."
+    message = f"Error. {len(files)} ETAD products found. 1 required."
+    assert len(search_results) == 1, message
     prod_id = search_results[0]['Id']
     prod_name = search_results[0]['Name']
     etad_filename = prod_name + '.zip'
@@ -76,7 +77,6 @@ def download_scene_etad(scene: str, username: str, password: str, etad_dir: str 
             archive.close()
 
     return etad_path if not unzip else etad_safe
-
 
 def find_etad_file(scene, ETAD_dir):
     """_summary_

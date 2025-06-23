@@ -13,26 +13,26 @@ scenes: [
 
 
 # the name of the software. This will form part of the path
-# where the products are writte
+# where the products are written
 software : pyrosar
 
-# we will mount this folder in the docker container so all data can be accessed
-# this folder should contain all the downloaded scenes, dems, etc specified below
-data_folder: '/data'
+# number of scenes to run in parallel
+n_parallel: 1
 
 #save directory for final opera products
+# a sub directory for each scene will be made
 pyrosar_output_folder: /data/pyroSAR/outdir
 
 # location of SNAP installation
 snap_path: /home/ec2-user/SNAP9/bin #'/Applications/snap/bin' 
 
-# location of earthdata credentials to download data.
+# location of earthdata credentials to download data. Should be in .credentials folder
 earthdata_credentials: credentials/credentials_earthdata.yaml
 
-# location of aws credentials
+# location of aws credentials. Should be in .credentials folder
 aws_credentials: credentials/credentials_aws.yaml
 
-# location of copernicus data space ecosystem credentials
+# location of copernicus data space ecosystem credentials. Should be in .credentials folder
 copernicus_credentials: credentials/credentials_copernicus.yaml
 
 # directory to save scenes
@@ -48,8 +48,8 @@ dem_folder: /data/dem
 # list of valid dems in https://pypi.org/project/dem-stitcher/
 dem_type: glo_30
 
-# File path to a DEM to use (skip download process and use DEM specified)
-# leave empty to ignore
+# File path to a an existing DEM file
+# leave empty to download a new one in the process
 dem_path:
 
 # Apply ETAD corrections to the slc
@@ -57,7 +57,7 @@ dem_path:
 apply_ETAD : False
 
 # number of gdal threads to process the ETAD file with
-gdal_threads : 4
+gdal_threads : 4 
 
 # Locally accessible folder containing ETAD files
 ETAD_folder : /data/ETAD
@@ -70,10 +70,12 @@ overwrite_dem : False
 scene_prefix: 
 
 # specify the folder in the s3 bucket
-s3_bucket_folder: experimental/sar-software-comparison-ew-40m-alex-fraser
+# sar-software-comparison-Xm, qld-rainforest-timeseries-Xm-2022 daintree-rainforest-timeseries-XXXm-2024
+s3_bucket_folder: experiments/pyrosar-snap-ew-testing/
 
 # s3 bucket to push the results
-# formatting will be {s3_bucket}/{opera-rtc}/{scene}/{product_id}
+# note, output crs (trg_crs) is set in opera config
+# formatting will be {s3_bucket}/{s3_bucket_folder}/{opera-rtc}/{dem_type}/{trg_crs}/{prefix}{scene}/{product_id}
 s3_bucket: deant-data-public-dev
 
 # whether to push to s3
@@ -100,9 +102,8 @@ pyrosar_refarea: ['gamma0','sigma0']
 # A target geographic reference system in WKT, EPSG, PROJ4 or OPENGIS format.
 # See function :func:`spatialist.auxil.crsConvert()` for details.
 # e.g. 4326, 3031
-# by default set the crs based on the location of the scene on
-# the sentinel-2 MGRS grid
-#pyrosar_t_srs: default
+# set 'default' to set the crs based on the UTM location of the scene centre
+# pyrosar_t_srs: default
 pyrosar_t_srs: 3031
 
 # turn off terrain flattening, e.g. testing for dem artifacts
@@ -113,5 +114,6 @@ pyrosar_terrainFlattening : True
 pyrosar_export_extra: ['incidenceAngleFromEllipsoid','localIncidenceAngle','DEM','layoverShadowMask','scatteringArea','gammaSigmaRatio']
 # pyrosar_export_extra: ['DEM']
 
-
-
+# a list of arguments to pass to the snap gpt interperator
+# -Djava.io.tmpdir=/data/tmp -> change temp dir, fills up root space on aws
+# gpt_args : ['-Djava.io.tmpdir=/data/tmp']

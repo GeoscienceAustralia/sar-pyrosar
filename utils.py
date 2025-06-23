@@ -43,18 +43,6 @@ class ProgressPercentage(object):
                     percentage))
             sys.stdout.flush()
 
-def transform_polygon(src_crs, dst_crs, geometry, always_xy=True):
-    src_crs = pyproj.CRS(f"EPSG:{src_crs}")
-    dst_crs = pyproj.CRS(f"EPSG:{dst_crs}") 
-    transformer = pyproj.Transformer.from_crs(src_crs, dst_crs, always_xy=always_xy)
-     # Transform the polygon's coordinates
-    transformed_exterior = [
-        transformer.transform(x, y) for x, y in geometry.exterior.coords
-    ]
-    # Create a new Shapely polygon with the transformed coordinates
-    transformed_polygon = Polygon(transformed_exterior)
-    return transformed_polygon
-
 def upload_file(file_name, bucket, object_name=None):
     """Upload a file to an S3 bucket
 
@@ -75,60 +63,6 @@ def upload_file(file_name, bucket, object_name=None):
     except ClientError as e:
         logging.error(e)
         return False
-
-def expand_raster_with_bounds(input_raster, output_raster, old_bounds, new_bounds, fill_value=None):
-    """Expand the raster to the desired bounds. Resolution and Location are preserved.
-
-    Args:
-        input_raster (str): input raster path
-        output_raster (str): out raster path
-        old_bounds (tuple): current bounds
-        new_bounds (tuple): new bounds
-        fill_value (float, int, optional): Fill value to pad with. Defaults to None and nodata is used.
-    """
-    # Open the raster dataset
-    with rasterio.open(input_raster, 'r') as src:
-        # get old bounds
-        old_left, old_bottom, old_right, old_top = old_bounds
-        # Define the new bounds
-        new_left, new_bottom, new_right, new_top = new_bounds
-        # adjust the new bounds with even pixel multiples of existing
-        # this will stop small offsets
-        logging.info(f'Making new raster with target bounds: {new_bounds}')
-        new_left = old_left - int(abs(new_left-old_left)/src.res[0])*src.res[0]
-        new_right = old_right + int(abs(new_right-old_right)/src.res[0])*src.res[0]
-        new_bottom = old_bottom - int(abs(new_bottom-old_bottom)/src.res[1])*src.res[1]
-        new_top = old_top + int(abs(new_top-old_top)/src.res[1])*src.res[1]
-        logging.info(f'New raster bounds: {(new_left, new_bottom, new_right, new_top)}')
-        # Calculate the new width and height, should be integer values
-        new_width = int((new_right - new_left) / src.res[0])
-        new_height = int((new_top - new_bottom) / src.res[1])
-        # Define the new transformation matrix
-        transform = from_origin(new_left, new_top, src.res[0], src.res[1])
-        # Create a new raster dataset with expanded bounds
-        profile = src.profile
-        profile.update({
-            'width': new_width,
-            'height': new_height,
-            'transform': transform
-        })
-        # make a temp file
-        tmp = output_raster.replace('.tif','_tmp.tif')
-        logging.info(f'Making temp file: {tmp}')
-        with rasterio.open(tmp, 'w', **profile) as dst:
-            # Read the data from the source and write it to the destination
-            fill_value = profile['nodata'] if fill_value is None else fill_value
-            logging.info(f'Padding new raster extent with value: {fill_value}')
-            data = np.full((new_height, new_width), fill_value=fill_value, dtype=profile['dtype'])
-            dst.write(data, 1)
-        # merge the old raster into the new raster with expanded bounds 
-        logging.info(f'Merging original raster and expanding bounds...')
-    del data
-    rasterio.merge.merge(
-        datasets=[tmp, input_raster],
-        method='max',
-        dst_path=output_raster)
-    os.remove(tmp)
 
 def normalise_bands(image: np.array, n_bands: int, p_min: int = 5, p_max: int = 95):
     """Normalise the bands between the specified percentiles
@@ -173,45 +107,3 @@ def save_tif_as_image(tif_path: str, img_path: str, downscale_factor: int =5):
                          dsize=(new_h, new_w), 
                          interpolation=cv2.INTER_CUBIC)
         cv2.imwrite(img_path, res)
-
-def adjust_scene_poly_at_extreme_lat(bbox, src_crs, ref_crs, delta=0.1):
-    """
-    Adjust the bounding box around a scene in src_crs (4326) due to warping at high
-    Latitudes. For example, the min and max boudning values for an antarctic scene in
-    4326 may not actually be the true min and max due to distortions at high latitudes. 
-
-    Parameters:
-    - bbox: Tuple of four coordinates (x_min, y_min, x_max, y_max).
-    - src_crs: Source EPSG. e.g. 4326
-    - ref_crs: reference crs to create the true bbox. i.e. 3031 in southern 
-                hemisphere and 3995 in northern (polar stereographic)
-    - delta: distance between generation points along the bounding box sides in
-            src_crs. e.g. 0.1 degrees in lat/lon 
-
-    Returns:
-    - A polygon bounding box expanded to the true min max
-    """
-    x_min, y_min, x_max, y_max = bbox
-    # Generate points along the top side
-    top_side = [(x, y_max) for x in list(np.arange(x_min, x_max, delta)) + [x_max]]    
-    # Generate points along the right side
-    right_side = [(x_max, y) for y in list(np.arange(y_max - delta, y_min-delta, -delta)) + [y_min]]
-    # Generate points along the bottom side
-    bottom_side = [(x, y_min) for x in list(np.arange(x_max - delta, x_min-delta, -delta)) + [x_min]]
-    list(np.arange(y_min + delta, y_max, delta)) + [y_max]
-    # Generate points along the left side
-    left_side = [(x_min, y) for y in list(np.arange(y_min + delta, y_max, delta)) + [y_max]]
-    # Combine all sides' points
-    all_points = top_side + right_side + bottom_side + left_side
-    # convert to a polygon 
-    polygon = Polygon(all_points)
-    # convert polygon to desired crs and get bounds in those coordinates
-    trans_bounds = transform_polygon(src_crs, ref_crs, polygon).bounds
-    trans_poly = Polygon(
-        [(trans_bounds[0], trans_bounds[1]), 
-         (trans_bounds[2], trans_bounds[1]), 
-         (trans_bounds[2], trans_bounds[3]), 
-         (trans_bounds[0], trans_bounds[3])]
-        )
-    corrected_poly = transform_polygon(ref_crs, src_crs, trans_poly)
-    return corrected_poly
