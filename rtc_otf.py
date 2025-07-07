@@ -243,10 +243,14 @@ def run_process(config, scene):
         clean_edges=True,
         terrainFlattening=otf_cfg['pyrosar_terrainFlattening'],
         export_extra=otf_cfg['pyrosar_export_extra'],
-        #gpt_args=otf_cfg['gpt_args'],
+        gpt_args=otf_cfg['gpt_args'],
         )
     logging.getLogger().setLevel(logging.INFO)
 
+    error_files = find_files(SCENE_OUT_FOLDER, 'error')
+    if len(error_files) > 0:
+        raise ValueError(f'RTC files, see logs: {error_files}')
+    
     if scene_workflow is None:
         # scene might already be processed
         xml_filename = find_files(SCENE_OUT_FOLDER, 'xml')[0]
