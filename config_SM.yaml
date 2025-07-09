@@ -1,19 +1,12 @@
 # list of scenes to download and process
 scenes: [
-        # S1A_EW_GRDM_1SDH_20230118T112609_20230118T112713_046837_059DB3_9C85,
-        # S1A_EW_GRDM_1SDH_20220225T174025_20220225T174129_042072_050315_7C35,
-        # S1A_EW_GRDM_1SDH_20221023T174035_20221023T174139_045572_0572D2_CD12,
-        # S1A_EW_GRDM_1SDH_20190924T112554_20190924T112659_029162_034FAB_41A7,
-        # S1B_EW_GRDM_1SDH_20210221T234712_20210221T234816_025711_0310AD_3C16,
-        # S1B_EW_GRDM_1SDH_20210304T000326_20210304T000430_025857_031578_789C,
-        # consecutive casey station
-        #S1A_EW_GRDM_1SDH_20210701T150428_20210701T150533_038585_048D91_23E6,
-        S1A_EW_GRDM_1SDH_20210704T152833_20210704T152942_038629_048EE8_D41F,
+        # Heard Island
+        'S1A_S3_SLC__1SSH_20220121T000105_20220121T000124_041551_04F116_EA2F'
         ]
 
 # the name of the software. This will form part of the path
 # where the products are written
-software : pyrosar-snap-ew
+software : pyrosar-snap-sm
 
 # number of scenes to run in parallel
 n_parallel: 1
@@ -70,7 +63,7 @@ scene_prefix:
 
 # specify the folder in the s3 bucket
 # sar-software-comparison-Xm, qld-rainforest-timeseries-Xm-2022 daintree-rainforest-timeseries-XXXm-2024
-s3_bucket_folder: exprimental
+s3_bucket_folder: experimental
 
 # s3 bucket to push the results
 # note, output crs (trg_crs) is set in opera config
@@ -87,7 +80,7 @@ upload_dem: True
 delete_local_files: True
 
 #pyrosar settings - pixel size
-pyrosar_spacing: 40
+pyrosar_spacing: 10
 
 #pyrosar settings - scale of final product
 # e.g. linear, db
