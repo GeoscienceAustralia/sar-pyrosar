@@ -3,7 +3,6 @@ asf-search==7.1.3
 pyproj==3.6.1
 scipy==1.14.0
 rasterio==1.3.10
-geopandas==1.0.0
-boto3==1.34.137
-git+https://github.com/abradley60/dem-stitcher.git@dem_fill 
+dem-handler @ git+https://github.com/GeoscienceAustralia/dem-handler.git@v0.2.2
 opencv-python-headless==4.10.0.84
+aioboto3==14.3.0
