@@ -243,7 +243,7 @@ def run_process(config, scene):
         clean_edges=True,
         terrainFlattening=otf_cfg['pyrosar_terrainFlattening'],
         export_extra=otf_cfg['pyrosar_export_extra'],
-        gpt_args=otf_cfg['gpt_args'],
+        #gpt_args=otf_cfg['gpt_args'],
         )
     logging.getLogger().setLevel(logging.INFO)
 

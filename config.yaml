@@ -112,7 +112,7 @@ scenes: [
 
 # the name of the software. This will form part of the path
 # where the products are written
-software : pyrosar
+software : pyrosar-snap12-pyrosar0.30.0
 
 # number of scenes to run in parallel
 n_parallel: 1

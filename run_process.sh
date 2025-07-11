@@ -27,5 +27,5 @@ docker run \
     -v $dem_folder:$dem_folder \
     -v $ETAD_folder:$ETAD_folder \
     -w /app/ \
-    -it pyrosar \
+    -it pyrosar:latest_software   \
     python rtc_otf.py -c $CONFIG_PATH
