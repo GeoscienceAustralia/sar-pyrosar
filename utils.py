@@ -12,6 +12,8 @@ import numpy as np
 import cv2
 import pyproj
 from shapely.geometry import Polygon
+import tempfile
+from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
@@ -126,3 +128,46 @@ def reassign_nodata_inplace(raster_path, new_nodata):
 
     # Replace the original file
     os.replace(temp_path, raster_path)
+
+def create_asf_netrc_file(asf_login: str, asf_pass: str) -> Path:
+    """
+    Create a temporary `.netrc` file containing ASF/Earthdata login credentials.
+
+    This function generates a temporary `.netrc` file to authenticate with the
+    Alaska Satellite Facility (ASF) or NASA Earthdata services. The file is
+    written to a secure temporary location, assigned appropriate file permissions
+    (`chmod 600`), and its path is set as the `NETRC` environment variable so that
+    tools using `requests` or other netrc-aware libraries can locate it.
+
+    Parameters
+    ----------
+    asf_login : str
+        The username associated with the ASF/NASA Earthdata account.
+    asf_pass : str
+        The password associated with the ASF/NASA Earthdata account.
+
+    Returns
+    -------
+    Path
+        The filesystem path to the created temporary `.netrc` file.
+    """
+
+    logger.info(f"Creating temporary .netrc file with ASF/Earthdata credentials")
+    with tempfile.NamedTemporaryFile("w", delete=False) as f:
+        f.write(
+            f"""machine urs.earthdata.nasa.gov
+        login {asf_login}
+        password {asf_pass}
+        """
+        )
+        netrc_path = f.name
+
+    logger.info(f"Temporary .netrc created at {netrc_path}")
+
+    # Set file permissions to 600 (required)
+    os.chmod(netrc_path, 0o600)
+
+    # Optional: tell requests/netrc-aware tools to use this file
+    os.environ["NETRC"] = netrc_path
+
+    return netrc_path

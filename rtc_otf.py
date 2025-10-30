@@ -110,8 +110,14 @@ def run_process(config, scene):
     
     # download scene
     logging.info(f'downloading scene')
-    session = asf.ASFSession()
-    session.auth_with_creds(earthdata_uid,earthdata_pswd)
+    try:
+        session = asf.ASFSession()
+        session.auth_with_creds(earthdata_uid,earthdata_pswd)
+    except:
+        # issue with session for some reason so use NETRC file
+        create_asf_netrc_file(earthdata_uid, earthdata_pswd)
+        session = None
+        
     SCENE_NAME = asf_results[0].__dict__['umm']['GranuleUR'].split('-')[0]
     scene_zip = os.path.join(otf_cfg['scene_folder'], SCENE_NAME + '.zip')
     asf_result.download(path=otf_cfg['scene_folder'], session=session)
